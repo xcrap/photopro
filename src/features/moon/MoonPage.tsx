@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Moon } from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SectionHeader } from '@/components/shared/SectionHeader'
 import { DateNavigator } from '@/components/shared/DateNavigator'
 import { useLocationStore } from '@/stores/location-store'
@@ -16,10 +17,19 @@ import { MoonProximityTab } from './MoonProximityTab'
 import { MoonEclipsesTab } from './MoonEclipsesTab'
 import { MoonSpecialTab } from './MoonSpecialTab'
 
+const tabs = [
+  { value: 'current', label: 'Current' },
+  { value: 'full-moons', label: 'Full Moons' },
+  { value: 'proximity', label: 'Opportunities' },
+  { value: 'eclipses', label: 'Eclipses' },
+  { value: 'special', label: 'Special' },
+] as const
+
 export function MoonPage() {
   const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
   const { latitude, longitude } = useLocationStore()
   const { eclipseYearsRange } = useSettingsStore()
+  const [activeTab, setActiveTab] = useState('current')
 
   const moonData = useMemo(() => getMoonData(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
   const fullMoons = useMemo(() => findFullMoons(selectedDate, 12), [selectedDate])
@@ -47,45 +57,45 @@ export function MoonPage() {
         }
       />
 
-      <Tabs defaultValue="current" className="space-y-4 overflow-hidden">
-        <TabsList className="no-scrollbar flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0">
-          <TabsTrigger value="current" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
-            Current
-          </TabsTrigger>
-          <TabsTrigger value="full-moons" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
-            Full Moons
-          </TabsTrigger>
-          <TabsTrigger value="proximity" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
-            Opportunities
-          </TabsTrigger>
-          <TabsTrigger value="eclipses" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
-            Eclipses
-          </TabsTrigger>
-          <TabsTrigger value="special" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
-            Special
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-4">
+        {/* Mobile: Select dropdown */}
+        <div className="md:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {tabs.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <TabsContent value="current">
-          <MoonCurrentTab moonData={moonData} now={selectedDate} />
-        </TabsContent>
+        {/* Desktop: Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
+          <TabsList className="h-auto w-full justify-start gap-1 bg-transparent p-0">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-        <TabsContent value="full-moons">
-          <MoonFullMoonsTab fullMoons={fullMoons} now={selectedDate} />
-        </TabsContent>
-
-        <TabsContent value="proximity">
-          <MoonProximityTab events={proximityEvents} />
-        </TabsContent>
-
-        <TabsContent value="eclipses">
-          <MoonEclipsesTab yearsRange={eclipseYearsRange} />
-        </TabsContent>
-
-        <TabsContent value="special">
-          <MoonSpecialTab events={specialEvents} />
-        </TabsContent>
-      </Tabs>
+        {/* Shared content */}
+        {activeTab === 'current' && <MoonCurrentTab moonData={moonData} now={selectedDate} />}
+        {activeTab === 'full-moons' && <MoonFullMoonsTab fullMoons={fullMoons} now={selectedDate} />}
+        {activeTab === 'proximity' && <MoonProximityTab events={proximityEvents} />}
+        {activeTab === 'eclipses' && <MoonEclipsesTab yearsRange={eclipseYearsRange} />}
+        {activeTab === 'special' && <MoonSpecialTab events={specialEvents} />}
+      </div>
     </div>
   )
 }

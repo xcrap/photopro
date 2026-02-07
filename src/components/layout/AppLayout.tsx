@@ -18,7 +18,7 @@ export function AppLayout() {
       <MobileNav open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex flex-1 overflow-hidden">
         <DesktopNav />
-        <ScrollArea className="flex-1 min-w-0">
+        <ScrollArea className="flex-1">
           <main className="mx-auto max-w-3xl p-4 pb-20 md:p-6">
             <Outlet />
           </main>
