@@ -1,0 +1,382 @@
+[
+  {
+    "date": "2024-03-25T07:12:00Z",
+    "type": "penumbral",
+    "category": "lunar",
+    "duration": "4h 39m",
+    "magnitude": 0.96,
+    "peakTime": "07:12 UTC",
+    "description": "Penumbral lunar eclipse visible from the Americas",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 95
+      },
+      {
+        "region": "Western Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 15 },
+        "percentage": 30
+      }
+    ]
+  },
+  {
+    "date": "2024-09-18T02:44:00Z",
+    "type": "partial",
+    "category": "lunar",
+    "duration": "4h 06m",
+    "magnitude": 0.08,
+    "peakTime": "02:44 UTC",
+    "description": "Partial lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 100
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 90
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 85
+      }
+    ]
+  },
+  {
+    "date": "2025-03-14T06:58:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 24m",
+    "magnitude": 1.18,
+    "peakTime": "06:58 UTC",
+    "description": "Total lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 100
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 95
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 80
+      }
+    ]
+  },
+  {
+    "date": "2025-09-07T18:11:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 18m",
+    "magnitude": 1.36,
+    "peakTime": "18:11 UTC",
+    "description": "Total lunar eclipse visible from Europe, Africa, Asia, and Australia",
+    "visibility": [
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 100
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 100
+      },
+      {
+        "region": "Asia",
+        "bounds": { "latMin": 5, "latMax": 55, "lonMin": 60, "lonMax": 145 },
+        "percentage": 90
+      },
+      {
+        "region": "Australia",
+        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
+        "percentage": 75
+      }
+    ]
+  },
+  {
+    "date": "2026-03-03T11:33:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 08m",
+    "magnitude": 1.15,
+    "peakTime": "11:33 UTC",
+    "description": "Total lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 85
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 95
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 100
+      }
+    ]
+  },
+  {
+    "date": "2026-08-28T04:13:00Z",
+    "type": "partial",
+    "category": "lunar",
+    "duration": "3h 36m",
+    "magnitude": 0.37,
+    "peakTime": "04:13 UTC",
+    "description": "Partial lunar eclipse visible from the Americas, Europe, and Asia",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 80
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 90
+      },
+      {
+        "region": "Asia",
+        "bounds": { "latMin": 5, "latMax": 55, "lonMin": 60, "lonMax": 145 },
+        "percentage": 60
+      }
+    ]
+  },
+  {
+    "date": "2027-02-20T23:11:00Z",
+    "type": "penumbral",
+    "category": "lunar",
+    "duration": "4h 24m",
+    "magnitude": 0.93,
+    "peakTime": "23:11 UTC",
+    "description": "Penumbral lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 95
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 85
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 70
+      }
+    ]
+  },
+  {
+    "date": "2027-07-18T16:03:00Z",
+    "type": "penumbral",
+    "category": "lunar",
+    "duration": "3h 48m",
+    "magnitude": 0.71,
+    "peakTime": "16:03 UTC",
+    "description": "Penumbral lunar eclipse visible from Asia and Australia",
+    "visibility": [
+      {
+        "region": "Asia",
+        "bounds": { "latMin": 5, "latMax": 55, "lonMin": 60, "lonMax": 145 },
+        "percentage": 95
+      },
+      {
+        "region": "Australia",
+        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
+        "percentage": 90
+      }
+    ]
+  },
+  {
+    "date": "2027-08-17T07:13:00Z",
+    "type": "penumbral",
+    "category": "lunar",
+    "duration": "3h 18m",
+    "magnitude": 0.45,
+    "peakTime": "07:13 UTC",
+    "description": "Penumbral lunar eclipse visible from the Americas and Europe",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 90
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 60
+      }
+    ]
+  },
+  {
+    "date": "2028-01-12T04:13:00Z",
+    "type": "partial",
+    "category": "lunar",
+    "duration": "4h 06m",
+    "magnitude": 0.07,
+    "peakTime": "04:13 UTC",
+    "description": "Partial lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 95
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 85
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 65
+      }
+    ]
+  },
+  {
+    "date": "2028-07-06T18:19:00Z",
+    "type": "partial",
+    "category": "lunar",
+    "duration": "3h 33m",
+    "magnitude": 0.39,
+    "peakTime": "18:19 UTC",
+    "description": "Partial lunar eclipse visible from the Americas and Europe",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 80
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 90
+      }
+    ]
+  },
+  {
+    "date": "2028-12-31T16:51:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 36m",
+    "magnitude": 1.24,
+    "peakTime": "16:51 UTC",
+    "description": "Total lunar eclipse visible from the Americas, Europe, Africa, and Asia",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 75
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 100
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 100
+      },
+      {
+        "region": "Asia",
+        "bounds": { "latMin": 5, "latMax": 55, "lonMin": 60, "lonMax": 145 },
+        "percentage": 70
+      }
+    ]
+  },
+  {
+    "date": "2029-06-26T03:22:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 42m",
+    "magnitude": 1.84,
+    "peakTime": "03:22 UTC",
+    "description": "Total lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 100
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 90
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 80
+      }
+    ]
+  },
+  {
+    "date": "2029-12-20T22:41:00Z",
+    "type": "total",
+    "category": "lunar",
+    "duration": "5h 12m",
+    "magnitude": 1.12,
+    "peakTime": "22:41 UTC",
+    "description": "Total lunar eclipse visible from the Americas, Europe, and Asia",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 95
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 100
+      },
+      {
+        "region": "Asia",
+        "bounds": { "latMin": 5, "latMax": 55, "lonMin": 60, "lonMax": 145 },
+        "percentage": 65
+      }
+    ]
+  },
+  {
+    "date": "2030-06-15T18:33:00Z",
+    "type": "partial",
+    "category": "lunar",
+    "duration": "3h 54m",
+    "magnitude": 0.50,
+    "peakTime": "18:33 UTC",
+    "description": "Partial lunar eclipse visible from the Americas, Europe, and Africa",
+    "visibility": [
+      {
+        "region": "Americas",
+        "bounds": { "latMin": -55, "latMax": 70, "lonMin": -170, "lonMax": -30 },
+        "percentage": 70
+      },
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 95
+      },
+      {
+        "region": "Africa",
+        "bounds": { "latMin": -35, "latMax": 37, "lonMin": -20, "lonMax": 52 },
+        "percentage": 90
+      }
+    ]
+  }
+]

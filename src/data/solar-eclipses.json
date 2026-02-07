@@ -1,0 +1,407 @@
+[
+  {
+    "date": "2024-04-08T18:18:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "4m 28s",
+    "magnitude": 1.057,
+    "peakTime": "18:18 UTC",
+    "description": "Total solar eclipse crossing Mexico, the United States, and Canada",
+    "visibility": [
+      {
+        "region": "Mexico",
+        "bounds": { "latMin": 18, "latMax": 32, "lonMin": -118, "lonMax": -86 },
+        "percentage": 100
+      },
+      {
+        "region": "United States",
+        "bounds": { "latMin": 25, "latMax": 49, "lonMin": -125, "lonMax": -66 },
+        "percentage": 90
+      },
+      {
+        "region": "Canada",
+        "bounds": { "latMin": 42, "latMax": 70, "lonMin": -140, "lonMax": -52 },
+        "percentage": 70
+      }
+    ]
+  },
+  {
+    "date": "2024-10-02T18:45:00Z",
+    "type": "annular",
+    "category": "solar",
+    "duration": "7m 25s",
+    "magnitude": 0.933,
+    "peakTime": "18:45 UTC",
+    "description": "Annular solar eclipse visible from southern South America",
+    "visibility": [
+      {
+        "region": "Chile",
+        "bounds": { "latMin": -56, "latMax": -17, "lonMin": -76, "lonMax": -66 },
+        "percentage": 95
+      },
+      {
+        "region": "Argentina",
+        "bounds": { "latMin": -55, "latMax": -22, "lonMin": -74, "lonMax": -53 },
+        "percentage": 90
+      },
+      {
+        "region": "South America",
+        "bounds": { "latMin": -56, "latMax": 12, "lonMin": -82, "lonMax": -34 },
+        "percentage": 60
+      }
+    ]
+  },
+  {
+    "date": "2025-03-29T10:47:00Z",
+    "type": "partial",
+    "category": "solar",
+    "duration": "2h 40m",
+    "magnitude": 0.94,
+    "peakTime": "10:47 UTC",
+    "description": "Partial solar eclipse visible from Europe and North Africa",
+    "visibility": [
+      {
+        "region": "Europe",
+        "bounds": { "latMin": 35, "latMax": 72, "lonMin": -10, "lonMax": 45 },
+        "percentage": 90
+      },
+      {
+        "region": "North Africa",
+        "bounds": { "latMin": 15, "latMax": 37, "lonMin": -18, "lonMax": 35 },
+        "percentage": 65
+      },
+      {
+        "region": "Western Russia",
+        "bounds": { "latMin": 45, "latMax": 70, "lonMin": 30, "lonMax": 60 },
+        "percentage": 55
+      }
+    ]
+  },
+  {
+    "date": "2025-09-21T19:42:00Z",
+    "type": "partial",
+    "category": "solar",
+    "duration": "2h 10m",
+    "magnitude": 0.86,
+    "peakTime": "19:42 UTC",
+    "description": "Partial solar eclipse visible from the South Pacific and Antarctica",
+    "visibility": [
+      {
+        "region": "South Pacific",
+        "bounds": { "latMin": -60, "latMax": -15, "lonMin": -180, "lonMax": -120 },
+        "percentage": 70
+      },
+      {
+        "region": "Antarctica",
+        "bounds": { "latMin": -90, "latMax": -60, "lonMin": -180, "lonMax": 180 },
+        "percentage": 80
+      },
+      {
+        "region": "New Zealand",
+        "bounds": { "latMin": -48, "latMax": -34, "lonMin": 166, "lonMax": 179 },
+        "percentage": 40
+      }
+    ]
+  },
+  {
+    "date": "2026-02-17T12:11:00Z",
+    "type": "annular",
+    "category": "solar",
+    "duration": "2m 20s",
+    "magnitude": 0.963,
+    "peakTime": "12:11 UTC",
+    "description": "Annular solar eclipse visible from Antarctica and southern South America",
+    "visibility": [
+      {
+        "region": "Antarctica",
+        "bounds": { "latMin": -90, "latMax": -60, "lonMin": -80, "lonMax": 20 },
+        "percentage": 90
+      },
+      {
+        "region": "Southern South America",
+        "bounds": { "latMin": -56, "latMax": -30, "lonMin": -76, "lonMax": -50 },
+        "percentage": 60
+      }
+    ]
+  },
+  {
+    "date": "2026-08-12T17:46:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "2m 18s",
+    "magnitude": 1.039,
+    "peakTime": "17:46 UTC",
+    "description": "Total solar eclipse crossing the Arctic, Iceland, and Spain",
+    "visibility": [
+      {
+        "region": "Arctic",
+        "bounds": { "latMin": 66, "latMax": 90, "lonMin": -60, "lonMax": 30 },
+        "percentage": 85
+      },
+      {
+        "region": "Iceland",
+        "bounds": { "latMin": 63, "latMax": 67, "lonMin": -25, "lonMax": -13 },
+        "percentage": 100
+      },
+      {
+        "region": "Spain",
+        "bounds": { "latMin": 36, "latMax": 44, "lonMin": -10, "lonMax": 4 },
+        "percentage": 95
+      },
+      {
+        "region": "Western Europe",
+        "bounds": { "latMin": 42, "latMax": 62, "lonMin": -10, "lonMax": 15 },
+        "percentage": 70
+      }
+    ]
+  },
+  {
+    "date": "2027-02-06T15:58:00Z",
+    "type": "annular",
+    "category": "solar",
+    "duration": "7m 51s",
+    "magnitude": 0.928,
+    "peakTime": "15:58 UTC",
+    "description": "Annular solar eclipse crossing South America and Africa",
+    "visibility": [
+      {
+        "region": "South America",
+        "bounds": { "latMin": -35, "latMax": 5, "lonMin": -76, "lonMax": -34 },
+        "percentage": 80
+      },
+      {
+        "region": "West Africa",
+        "bounds": { "latMin": 0, "latMax": 20, "lonMin": -18, "lonMax": 15 },
+        "percentage": 90
+      },
+      {
+        "region": "Central Africa",
+        "bounds": { "latMin": -10, "latMax": 15, "lonMin": 10, "lonMax": 35 },
+        "percentage": 70
+      }
+    ]
+  },
+  {
+    "date": "2027-08-02T10:06:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "6m 23s",
+    "magnitude": 1.079,
+    "peakTime": "10:06 UTC",
+    "description": "Total solar eclipse crossing North Africa, the Middle East, and Asia",
+    "visibility": [
+      {
+        "region": "North Africa",
+        "bounds": { "latMin": 20, "latMax": 37, "lonMin": -10, "lonMax": 35 },
+        "percentage": 95
+      },
+      {
+        "region": "Middle East",
+        "bounds": { "latMin": 22, "latMax": 40, "lonMin": 35, "lonMax": 60 },
+        "percentage": 100
+      },
+      {
+        "region": "South Asia",
+        "bounds": { "latMin": 8, "latMax": 35, "lonMin": 60, "lonMax": 92 },
+        "percentage": 85
+      },
+      {
+        "region": "Southeast Asia",
+        "bounds": { "latMin": -10, "latMax": 25, "lonMin": 95, "lonMax": 120 },
+        "percentage": 55
+      }
+    ]
+  },
+  {
+    "date": "2028-01-26T15:08:00Z",
+    "type": "annular",
+    "category": "solar",
+    "duration": "10m 27s",
+    "magnitude": 0.921,
+    "peakTime": "15:08 UTC",
+    "description": "Annular solar eclipse crossing South America and the Caribbean",
+    "visibility": [
+      {
+        "region": "South America",
+        "bounds": { "latMin": -20, "latMax": 12, "lonMin": -82, "lonMax": -34 },
+        "percentage": 85
+      },
+      {
+        "region": "Caribbean",
+        "bounds": { "latMin": 10, "latMax": 25, "lonMin": -85, "lonMax": -60 },
+        "percentage": 75
+      },
+      {
+        "region": "Central America",
+        "bounds": { "latMin": 7, "latMax": 18, "lonMin": -92, "lonMax": -77 },
+        "percentage": 55
+      }
+    ]
+  },
+  {
+    "date": "2028-07-22T02:55:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "5m 10s",
+    "magnitude": 1.056,
+    "peakTime": "02:55 UTC",
+    "description": "Total solar eclipse crossing Australia and New Zealand",
+    "visibility": [
+      {
+        "region": "Australia",
+        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
+        "percentage": 95
+      },
+      {
+        "region": "New Zealand",
+        "bounds": { "latMin": -48, "latMax": -34, "lonMin": 166, "lonMax": 179 },
+        "percentage": 85
+      },
+      {
+        "region": "Southeast Asia",
+        "bounds": { "latMin": -10, "latMax": 10, "lonMin": 100, "lonMax": 130 },
+        "percentage": 40
+      }
+    ]
+  },
+  {
+    "date": "2029-01-14T17:13:00Z",
+    "type": "partial",
+    "category": "solar",
+    "duration": "2h 30m",
+    "magnitude": 0.87,
+    "peakTime": "17:13 UTC",
+    "description": "Partial solar eclipse visible from North America and Central America",
+    "visibility": [
+      {
+        "region": "North America",
+        "bounds": { "latMin": 25, "latMax": 70, "lonMin": -140, "lonMax": -60 },
+        "percentage": 80
+      },
+      {
+        "region": "Central America",
+        "bounds": { "latMin": 7, "latMax": 18, "lonMin": -92, "lonMax": -77 },
+        "percentage": 55
+      }
+    ]
+  },
+  {
+    "date": "2029-06-12T04:05:00Z",
+    "type": "partial",
+    "category": "solar",
+    "duration": "1h 50m",
+    "magnitude": 0.46,
+    "peakTime": "04:05 UTC",
+    "description": "Partial solar eclipse visible from Arctic regions",
+    "visibility": [
+      {
+        "region": "Arctic",
+        "bounds": { "latMin": 60, "latMax": 90, "lonMin": -30, "lonMax": 90 },
+        "percentage": 75
+      },
+      {
+        "region": "Northern Scandinavia",
+        "bounds": { "latMin": 60, "latMax": 72, "lonMin": 5, "lonMax": 35 },
+        "percentage": 55
+      },
+      {
+        "region": "Northern Russia",
+        "bounds": { "latMin": 60, "latMax": 78, "lonMin": 30, "lonMax": 90 },
+        "percentage": 50
+      }
+    ]
+  },
+  {
+    "date": "2029-07-11T15:36:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "3m 26s",
+    "magnitude": 1.041,
+    "peakTime": "15:36 UTC",
+    "description": "Total solar eclipse crossing North America and the Caribbean",
+    "visibility": [
+      {
+        "region": "United States",
+        "bounds": { "latMin": 25, "latMax": 49, "lonMin": -125, "lonMax": -66 },
+        "percentage": 85
+      },
+      {
+        "region": "Caribbean",
+        "bounds": { "latMin": 10, "latMax": 25, "lonMin": -85, "lonMax": -60 },
+        "percentage": 70
+      },
+      {
+        "region": "Canada",
+        "bounds": { "latMin": 42, "latMax": 70, "lonMin": -140, "lonMax": -52 },
+        "percentage": 50
+      },
+      {
+        "region": "Mexico",
+        "bounds": { "latMin": 14, "latMax": 33, "lonMin": -118, "lonMax": -86 },
+        "percentage": 60
+      }
+    ]
+  },
+  {
+    "date": "2030-06-01T06:28:00Z",
+    "type": "annular",
+    "category": "solar",
+    "duration": "5m 21s",
+    "magnitude": 0.944,
+    "peakTime": "06:28 UTC",
+    "description": "Annular solar eclipse crossing North Africa, Europe, and Asia",
+    "visibility": [
+      {
+        "region": "North Africa",
+        "bounds": { "latMin": 20, "latMax": 37, "lonMin": -10, "lonMax": 35 },
+        "percentage": 95
+      },
+      {
+        "region": "Southern Europe",
+        "bounds": { "latMin": 36, "latMax": 48, "lonMin": -10, "lonMax": 30 },
+        "percentage": 80
+      },
+      {
+        "region": "Central Asia",
+        "bounds": { "latMin": 30, "latMax": 50, "lonMin": 50, "lonMax": 90 },
+        "percentage": 70
+      },
+      {
+        "region": "East Asia",
+        "bounds": { "latMin": 25, "latMax": 45, "lonMin": 100, "lonMax": 145 },
+        "percentage": 55
+      }
+    ]
+  },
+  {
+    "date": "2030-11-25T06:50:00Z",
+    "type": "total",
+    "category": "solar",
+    "duration": "3m 44s",
+    "magnitude": 1.047,
+    "peakTime": "06:50 UTC",
+    "description": "Total solar eclipse crossing southern Africa and Australia",
+    "visibility": [
+      {
+        "region": "South Africa",
+        "bounds": { "latMin": -35, "latMax": -22, "lonMin": 16, "lonMax": 33 },
+        "percentage": 95
+      },
+      {
+        "region": "Southern Africa",
+        "bounds": { "latMin": -35, "latMax": -10, "lonMin": 10, "lonMax": 52 },
+        "percentage": 80
+      },
+      {
+        "region": "Australia",
+        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
+        "percentage": 85
+      },
+      {
+        "region": "Indian Ocean",
+        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 50, "lonMax": 110 },
+        "percentage": 60
+      }
+    ]
+  }
+]

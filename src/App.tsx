@@ -1,0 +1,21 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { HomePage } from '@/features/home/HomePage'
+import { MoonPage } from '@/features/moon/MoonPage'
+import { SunPage } from '@/features/sun/SunPage'
+import { SettingsPage } from '@/features/settings/SettingsPage'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/moon" element={<MoonPage />} />
+          <Route path="/sun" element={<SunPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
