@@ -47,21 +47,21 @@ export function MoonPage() {
         }
       />
 
-      <Tabs defaultValue="current" className="space-y-4">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0">
-          <TabsTrigger value="current" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
+      <Tabs defaultValue="current" className="space-y-4 overflow-hidden">
+        <TabsList className="no-scrollbar flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0">
+          <TabsTrigger value="current" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Current
           </TabsTrigger>
-          <TabsTrigger value="full-moons" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
+          <TabsTrigger value="full-moons" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Full Moons
           </TabsTrigger>
-          <TabsTrigger value="proximity" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
+          <TabsTrigger value="proximity" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Opportunities
           </TabsTrigger>
-          <TabsTrigger value="eclipses" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
+          <TabsTrigger value="eclipses" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Eclipses
           </TabsTrigger>
-          <TabsTrigger value="special" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
+          <TabsTrigger value="special" className="shrink-0 grow-0 basis-auto rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Special
           </TabsTrigger>
         </TabsList>

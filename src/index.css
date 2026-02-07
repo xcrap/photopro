@@ -169,6 +169,20 @@ body::after {
 .animate-in-4 { animation: fade-up 0.5s ease-out 0.26s both; }
 .animate-in-5 { animation: fade-up 0.5s ease-out 0.33s both; }
 
+/* Prevent Radix ScrollArea inner wrapper from expanding horizontally */
+[data-slot="scroll-area-viewport"] > div {
+  display: block !important;
+}
+
+/* Hide scrollbar for horizontal tab scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Display weight for emphasis */
 .font-display {
   font-weight: 600;
