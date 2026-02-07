@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 interface MoonPhaseIconProps {
   phase: number
   size?: number
@@ -5,43 +7,29 @@ interface MoonPhaseIconProps {
 }
 
 export function MoonPhaseIcon({ phase, size = 64, className = '' }: MoonPhaseIconProps) {
-  // phase: 0 = new moon, 0.5 = full moon, 1 = new moon again
-  const r = size / 2 - 2
+  const uid = useId().replace(/:/g, '')
+  const r = size / 2 - 1
   const cx = size / 2
   const cy = size / 2
 
-  // illumination: 0 at new moon, 1 at full moon
-  const illumination = phase <= 0.5 ? phase * 2 : (1 - phase) * 2
-  const isWaxing = phase <= 0.5
-
-  // Terminator ellipse rx: controls how curved the shadow edge is
-  const terminatorRx = Math.abs(r * (1 - 2 * illumination))
+  const normalizedPhase = ((phase % 1) + 1) % 1
+  const illumination = normalizedPhase <= 0.5 ? normalizedPhase * 2 : (1 - normalizedPhase) * 2
+  const isWaxing = normalizedPhase <= 0.5
+  const terminatorRx = Math.max(Math.abs(r * (1 - 2 * illumination)), 0.01)
 
   let illuminatedPath: string
 
-  if (phase < 0.01 || phase > 0.99) {
-    // New moon - no illumination
+  if (normalizedPhase < 0.01 || normalizedPhase > 0.99) {
     illuminatedPath = ''
-  } else if (Math.abs(phase - 0.5) < 0.01) {
-    // Full moon - full circle
+  } else if (Math.abs(normalizedPhase - 0.5) < 0.01) {
     illuminatedPath = `M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx} ${cy - r}`
   } else if (isWaxing) {
-    // Waxing: right side illuminated
-    // Lit edge: top → bottom via right side (clockwise, sweep=1)
     const litEdge = `A ${r} ${r} 0 0 1 ${cx} ${cy + r}`
-    // Terminator: bottom → top
-    // Crescent (illum<0.5): curves right (counter-clockwise=0)
-    // Gibbous (illum>0.5): curves left (clockwise=1)
     const terminatorSweep = illumination <= 0.5 ? 0 : 1
     const terminator = `A ${terminatorRx} ${r} 0 0 ${terminatorSweep} ${cx} ${cy - r}`
     illuminatedPath = `M ${cx} ${cy - r} ${litEdge} ${terminator}`
   } else {
-    // Waning: left side illuminated
-    // Lit edge: top → bottom via left side (counter-clockwise, sweep=0)
     const litEdge = `A ${r} ${r} 0 0 0 ${cx} ${cy + r}`
-    // Terminator: bottom → top
-    // Crescent (illum<0.5): curves left (clockwise=1)
-    // Gibbous (illum>0.5): curves right (counter-clockwise=0)
     const terminatorSweep = illumination <= 0.5 ? 1 : 0
     const terminator = `A ${terminatorRx} ${r} 0 0 ${terminatorSweep} ${cx} ${cy - r}`
     illuminatedPath = `M ${cx} ${cy - r} ${litEdge} ${terminator}`
@@ -52,33 +40,33 @@ export function MoonPhaseIcon({ phase, size = 64, className = '' }: MoonPhaseIco
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className={className}
+      className={`block ${className}`}
     >
-      {/* Moon background (dark side) */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="oklch(0.25 0.02 260)"
-        stroke="oklch(0.4 0.03 270)"
-        strokeWidth={1}
-      />
-      {/* Illuminated portion */}
+      <defs>
+        <radialGradient id={`${uid}-lit`} cx="38%" cy="32%" r="65%">
+          <stop offset="0%" stopColor="#ddd8ce" />
+          <stop offset="60%" stopColor="#b8b3a6" />
+          <stop offset="100%" stopColor="#9a9589" />
+        </radialGradient>
+        <radialGradient id={`${uid}-dark`} cx="55%" cy="45%" r="55%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+      {/* Dark side */}
+      <circle cx={cx} cy={cy} r={r} fill={`url(#${uid}-dark)`} />
+      {/* Lit side */}
       {illuminatedPath && (
-        <path
-          d={illuminatedPath}
-          fill="oklch(0.90 0.04 85)"
-          opacity={0.95}
-        />
+        <path d={illuminatedPath} fill={`url(#${uid}-lit)`} />
       )}
-      {/* Subtle glow */}
+      {/* Rim light */}
       <circle
         cx={cx}
         cy={cy}
         r={r}
         fill="none"
-        stroke="oklch(0.85 0.06 85 / 0.2)"
-        strokeWidth={2}
+        stroke="rgba(168,184,216,0.08)"
+        strokeWidth={0.75}
       />
     </svg>
   )

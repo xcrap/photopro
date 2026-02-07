@@ -1,6 +1,5 @@
-import { Menu, Moon, MapPin, MapPinOff } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { useLocationStore } from '@/stores/location-store'
 
 interface HeaderProps {
@@ -11,37 +10,31 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { gpsStatus } = useLocationStore()
 
   const isGps = gpsStatus === 'granted'
-  const GpsIcon = isGps ? MapPin : MapPinOff
-  const gpsColor = isGps
-    ? 'text-emerald-400'
-    : gpsStatus === 'denied' || gpsStatus === 'error'
-      ? 'text-red-400'
-      : 'text-muted-foreground'
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="flex h-14 items-center gap-3 px-4">
+    <header className="sticky top-0 z-50 border-b border-white/[0.03] bg-[#0a0b14]/90 backdrop-blur-2xl">
+      <div className="flex h-14 items-center gap-4 px-5">
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 md:hidden"
+          className="h-10 w-10 shrink-0 rounded-xl md:hidden"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-            <Moon className="h-4 w-4 text-primary" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight">PhotoPro</span>
-        </div>
+        <span className="text-[17px] font-semibold tracking-tight text-foreground">PhotoPro</span>
 
         <div className="ml-auto">
-          <Badge variant="outline" className="gap-1.5 border-border/50 text-xs">
-            <GpsIcon className={`h-3 w-3 ${gpsColor}`} />
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${
+              isGps
+                ? 'border-proximity/30 bg-proximity/12 text-proximity'
+                : 'border-white/[0.08] bg-white/[0.04] text-muted-foreground/90'
+            }`}
+          >
             {isGps ? 'GPS' : 'Manual'}
-          </Badge>
+          </span>
         </div>
       </div>
     </header>

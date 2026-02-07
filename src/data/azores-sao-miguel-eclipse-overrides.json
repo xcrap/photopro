@@ -1,0 +1,15 @@
+{
+  "location": {
+    "name": "Sao Miguel Island, Azores",
+    "bounds": {
+      "latMin": 37.6,
+      "latMax": 38.0,
+      "lonMin": -25.95,
+      "lonMax": -25.0
+    }
+  },
+  "solar": {
+    "2026-08-12T17:46:00.000Z": 77
+  },
+  "lunar": {}
+}

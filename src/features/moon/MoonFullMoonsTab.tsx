@@ -1,5 +1,4 @@
 import { differenceInDays } from 'date-fns'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/formatting'
 import { useCurrentTime } from '@/hooks/useCurrentTime'
@@ -16,44 +15,34 @@ export function MoonFullMoonsTab({ fullMoons }: MoonFullMoonsTabProps) {
     const days = differenceInDays(date, now)
     if (days === 0) return 'Today'
     if (days === 1) return 'Tomorrow'
-    return `in ${days} days`
+    return `in ${days}d`
   }
 
-  return (
-    <div className="space-y-3">
-      {fullMoons.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          No full moons found in range
-        </p>
-      ) : (
-        fullMoons.map((fm, i) => (
-          <Card
-            key={i}
-            className="transition-colors hover:bg-card/80"
-            style={{ borderLeftWidth: 3, borderLeftColor: fm.isSupermoon ? 'var(--moon)' : 'transparent' }}
-          >
-            <CardContent className="py-4">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🌕</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">{fm.folkName}</p>
-                    {fm.isSupermoon && (
-                      <Badge className="bg-moon/10 text-moon text-xs">
-                        Supermoon
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{formatDate(fm.date)}</p>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {daysUntil(fm.date)}
+  return fullMoons.length === 0 ? (
+    <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+      No full moons found in range
+    </p>
+  ) : (
+    <div className="surface divide-y divide-white/[0.04]">
+      {fullMoons.map((fm, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+          <span className="text-base">🌕</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-[17px] font-semibold tracking-tight text-foreground">{fm.folkName}</p>
+              {fm.isSupermoon && (
+                <Badge className="shrink-0 border-0 bg-moon/10 px-1.5 py-0 text-[11px] font-medium text-moon">
+                  Super
                 </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))
-      )}
+              )}
+            </div>
+            <p className="text-[14px] text-muted-foreground">{formatDate(fm.date)}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[13px] tabular-nums text-muted-foreground">
+            {daysUntil(fm.date)}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

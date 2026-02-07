@@ -7,21 +7,14 @@ interface SectionHeaderProps {
   action?: ReactNode
 }
 
-export function SectionHeader({ title, description, icon, action }: SectionHeaderProps) {
+export function SectionHeader({ title, description, action }: SectionHeaderProps) {
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-2.5">
-        {icon && (
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            {icon}
-          </span>
+    <div className="flex items-end justify-between pb-2">
+      <div>
+        <h2 className="text-[24px] font-bold leading-none tracking-tight">{title}</h2>
+        {description && (
+          <p className="mt-1.5 text-[13px] text-muted-foreground">{description}</p>
         )}
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-        </div>
       </div>
       {action}
     </div>

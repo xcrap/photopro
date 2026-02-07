@@ -144,6 +144,11 @@
         "percentage": 100
       },
       {
+        "region": "Azores",
+        "bounds": { "latMin": 36, "latMax": 40, "lonMin": -32, "lonMax": -24 },
+        "percentage": 77
+      },
+      {
         "region": "Spain",
         "bounds": { "latMin": 36, "latMax": 44, "lonMin": -10, "lonMax": 4 },
         "percentage": 95
@@ -152,6 +157,11 @@
         "region": "Western Europe",
         "bounds": { "latMin": 42, "latMax": 62, "lonMin": -10, "lonMax": 15 },
         "percentage": 70
+      },
+      {
+        "region": "Northwest Africa",
+        "bounds": { "latMin": 27, "latMax": 40, "lonMin": -18, "lonMax": 12 },
+        "percentage": 77
       }
     ]
   },

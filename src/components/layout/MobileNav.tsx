@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Separator } from '@/components/ui/separator'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Home },
@@ -23,31 +22,27 @@ interface MobileNavProps {
 export function MobileNav({ open, onClose }: MobileNavProps) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-72 bg-background p-0">
-        <SheetHeader className="px-6 pt-6 pb-4">
-          <SheetTitle className="flex items-center gap-2 text-lg">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Moon className="h-4 w-4 text-primary" />
-            </div>
+      <SheetContent side="left" className="w-72 border-white/[0.03] bg-[#0a0b14] p-0">
+        <SheetHeader className="px-6 pt-8 pb-6">
+          <SheetTitle className="text-[18px] font-semibold tracking-tight text-foreground">
             PhotoPro
           </SheetTitle>
         </SheetHeader>
-        <Separator />
-        <nav className="flex flex-col gap-1 p-4">
+        <nav className="flex flex-col gap-0.5 px-4">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                `flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-[13px] tracking-wide transition-all duration-200 ${
                   isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-white/[0.05] font-medium text-foreground'
+                    : 'text-muted-foreground hover:bg-white/[0.02] hover:text-foreground/70'
                 }`
               }
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-[18px] w-[18px]" />
               {item.label}
             </NavLink>
           ))}
