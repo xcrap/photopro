@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Eclipse } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { useLocationStore } from '@/stores/location-store'
@@ -13,11 +12,11 @@ interface MoonEclipsesTabProps {
   yearsRange: number
 }
 
-const typeBadgeColors: Record<string, string> = {
-  total: 'bg-red-500/10 text-red-300 border-0',
-  partial: 'bg-amber-500/10 text-amber-200 border-0',
-  annular: 'bg-orange-500/10 text-orange-200 border-0',
-  penumbral: 'bg-zinc-500/10 text-zinc-300 border-0',
+const typeColors: Record<string, string> = {
+  total: 'text-red-300',
+  partial: 'text-amber-200',
+  annular: 'text-orange-200',
+  penumbral: 'text-zinc-400',
 }
 
 export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
@@ -50,72 +49,67 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end gap-2">
-        <span className="text-[12px] text-muted-foreground/80">
-          {showAllEclipses ? 'Show all eclipses' : 'Visible from your location'}
-        </span>
-        <Switch checked={showAllEclipses} onCheckedChange={setShowAllEclipses} />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-eclipse/8">
+            <Eclipse className="h-3.5 w-3.5 text-eclipse" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Lunar Eclipses</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground/80">
+            {showAllEclipses ? 'All' : 'Visible only'}
+          </span>
+          <Switch checked={showAllEclipses} onCheckedChange={setShowAllEclipses} />
+        </div>
       </div>
 
       {filteredEclipses.length === 0 ? (
-        <p className="py-8 text-center text-[14px] text-muted-foreground/60">
+        <p className="py-8 text-center text-sm text-muted-foreground">
           {showAllEclipses
             ? `No lunar eclipses in the next ${yearsRange} year${yearsRange > 1 ? 's' : ''}`
             : 'No visible lunar eclipses for your location in this range'}
         </p>
       ) : (
-        filteredEclipses.map(({ eclipse, visibility }, i) => {
-          return (
-            <Card
-              key={i}
-              className="surface overflow-hidden border-0 transition-colors hover:bg-white/[0.06]"
-            >
-              <CardContent className="px-5 py-4">
-                <div className="space-y-3.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-[21px] font-semibold tracking-tight capitalize text-foreground">
-                        {eclipse.type} Lunar Eclipse
-                      </p>
-                      <p className="text-[15px] text-muted-foreground/90">
-                        {formatDate(eclipse.date)} · Peak: {eclipse.peakTime}
-                      </p>
-                    </div>
-                    <Badge className={`px-2.5 py-0.5 text-[13px] font-medium capitalize ${typeBadgeColors[eclipse.type] || ''}`}>
-                      {eclipse.type}
-                    </Badge>
-                  </div>
+        filteredEclipses.map(({ eclipse, visibility }, i) => (
+          <div
+            key={i}
+            className="surface p-5"
+          >
+              {/* Header */}
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
+                  {formatDate(eclipse.date)}
+                </h3>
+                <span className={`text-xs font-semibold uppercase tracking-wider ${typeColors[eclipse.type] || 'text-foreground/60'}`}>
+                  {eclipse.type}
+                </span>
+              </div>
 
-                  <p className="text-[15px] leading-relaxed text-muted-foreground/90">{eclipse.description}</p>
+              <p className="mt-1 text-sm text-foreground/60">
+                <span className="capitalize">{eclipse.type}</span> Lunar Eclipse · Peak {eclipse.peakTime}
+              </p>
 
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <div className="rounded-lg bg-white/[0.04] px-3 py-2.5 sm:col-span-2">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">Visibility here</p>
-                        <p className="text-[17px] font-semibold tabular-nums text-foreground">
-                          {visibility > 0 ? `${visibility}%` : 'Not visible'}
-                        </p>
-                      </div>
-                      <Progress value={visibility} className="mt-2 h-1.5 bg-white/10" />
-                    </div>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/50">{eclipse.description}</p>
 
-                    <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
-                      <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">Duration</p>
-                      <p className="text-[17px] font-semibold tabular-nums text-foreground">{eclipse.duration}</p>
-                    </div>
-
-                    <div className="rounded-lg bg-white/[0.04] px-3 py-2.5 sm:col-span-3">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">Magnitude</p>
-                        <p className="text-[17px] font-semibold tabular-nums text-foreground">{eclipse.magnitude.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
+              {/* Visibility */}
+              <div className="mt-3.5 flex items-center gap-4">
+                <div className="flex-1">
+                  <Progress value={visibility} className="h-1.5 bg-white/[0.06]" />
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })
+                <span className="text-lg font-bold tabular-nums text-foreground">
+                  {visibility > 0 ? `${visibility}%` : '—'}
+                </span>
+              </div>
+
+              {/* Stats */}
+              <div className="mt-2.5 flex items-center gap-3 text-sm tabular-nums text-foreground/50">
+                <span>Duration {eclipse.duration}</span>
+                <span className="text-white/10">|</span>
+                <span>Magnitude {eclipse.magnitude.toFixed(2)}</span>
+              </div>
+          </div>
+        ))
       )}
     </div>
   )

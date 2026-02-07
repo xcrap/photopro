@@ -23,15 +23,15 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
       <div className="flex flex-col items-center gap-5 px-6 py-8">
         <MoonPhaseIcon phase={moonData.phase} size={140} />
         <div className="text-center">
-          <h3 className="text-[22px] font-bold tracking-tight">{moonData.phaseName}</h3>
-          <p className="mt-1 text-[14px] tabular-nums text-muted-foreground">
+          <h3 className="text-xl font-bold tracking-tight">{moonData.phaseName}</h3>
+          <p className="mt-1 text-sm tabular-nums text-muted-foreground">
             {moonData.illumination.toFixed(1)}% illuminated
           </p>
         </div>
       </div>
 
       {/* Details */}
-      <div className="surface px-5 py-2">
+      <div className="surface p-5">
         <InfoRow
           icon={<Clock className="h-3.5 w-3.5" />}
           label="Moon Age"
@@ -62,16 +62,16 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
       </div>
 
       {/* Rise/Set */}
-      <div className="surface px-5 py-2">
+      <div className="surface p-5">
         <InfoRow
           label="Moonrise"
           value={moonData.moonrise ? formatTime(moonData.moonrise, timeFormat) : '—'}
-          icon={<span className="text-[11px]">🌙↑</span>}
+          icon={<span className="text-xs">🌙↑</span>}
         />
         <InfoRow
           label="Moonset"
           value={moonData.moonset ? formatTime(moonData.moonset, timeFormat) : '—'}
-          icon={<span className="text-[11px]">🌙↓</span>}
+          icon={<span className="text-xs">🌙↓</span>}
         />
       </div>
     </div>

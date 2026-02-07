@@ -9,7 +9,6 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -140,25 +139,27 @@ export function SettingsPage() {
       />
 
       {/* Location */}
-      <Card className="surface overflow-hidden border-0">
-        <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-          <MapPin className="h-4 w-4 text-primary/70" />
-          <span className="text-[13px] font-semibold">Location</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Location</span>
         </div>
-        <CardContent className="space-y-5 px-5 pt-0 pb-5">
+        <div className="surface space-y-3 p-5">
           {/* GPS Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04]">
                 <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-[13px] font-medium">Use GPS</p>
-                <p className="text-[11px] text-muted-foreground/60">Auto-detect location</p>
+                <p className="text-sm font-medium">Use GPS</p>
+                <p className="text-xs text-muted-foreground/60">Auto-detect location</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <Badge variant="outline" className="border-white/[0.06] bg-white/[0.03] text-[10px] font-normal">
+              <Badge variant="outline" className="border-white/[0.06] bg-white/[0.03] text-xs font-normal">
                 {gpsStatus}
               </Badge>
               <Switch checked={gpsEnabled} onCheckedChange={handleGpsToggle} />
@@ -167,16 +168,16 @@ export function SettingsPage() {
 
           {/* Current Location */}
           <div className="rounded-xl bg-white/[0.03] p-3.5">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/40">Current</p>
-            <p className="mt-1 text-[14px] font-medium">{name || 'Unknown'}</p>
-            <p className="text-[11px] tabular-nums text-muted-foreground/50">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Current</p>
+            <p className="mt-1 text-sm font-medium">{name || 'Unknown'}</p>
+            <p className="text-xs tabular-nums text-muted-foreground/50">
               {latitude.toFixed(4)}, {longitude.toFixed(4)}
             </p>
           </div>
 
           {/* Manual Coordinates */}
           <div className="space-y-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/40">Manual coordinates</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Manual coordinates</p>
             <div className="flex gap-2">
               <Input
                 type="number"
@@ -186,7 +187,7 @@ export function SettingsPage() {
                 value={manualLat}
                 onChange={(e) => setManualLat(e.target.value)}
                 placeholder="Latitude"
-                className="h-9 bg-white/[0.03] text-[13px]"
+                className="h-9 bg-white/[0.03] text-sm"
               />
               <Input
                 type="number"
@@ -196,28 +197,30 @@ export function SettingsPage() {
                 value={manualLon}
                 onChange={(e) => setManualLon(e.target.value)}
                 placeholder="Longitude"
-                className="h-9 bg-white/[0.03] text-[13px]"
+                className="h-9 bg-white/[0.03] text-sm"
               />
             </div>
-            <Button onClick={handleManualSubmit} size="sm" className="h-8 w-full text-[12px]">
+            <Button onClick={handleManualSubmit} size="sm" className="h-8 w-full text-xs">
               Update Location
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Saved Locations */}
-      <Card className="surface overflow-hidden border-0">
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary/70" />
-            <span className="text-[13px] font-semibold">Saved Locations</span>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">Saved Locations</span>
           </div>
           <div className="flex gap-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-[11px] text-muted-foreground/60 hover:text-foreground"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground/60 hover:text-foreground"
               onClick={openAddCurrentDialog}
             >
               <Navigation className="h-3 w-3" /> Save Current
@@ -225,18 +228,18 @@ export function SettingsPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-[11px] text-muted-foreground/60 hover:text-foreground"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground/60 hover:text-foreground"
               onClick={openAddDialog}
             >
               <Plus className="h-3 w-3" /> Add
             </Button>
           </div>
         </div>
-        <CardContent className="space-y-1.5 px-5 pt-0 pb-5">
+        <div className="surface space-y-1.5 p-5">
           {savedLocations.length === 0 && (
             <div className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.02] py-8">
               <MapPin className="h-5 w-5 text-muted-foreground/30" />
-              <p className="text-[12px] text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground/40">
                 No saved locations yet
               </p>
             </div>
@@ -250,8 +253,8 @@ export function SettingsPage() {
                 className="min-w-0 flex-1 text-left"
                 onClick={() => handleSelectSaved(loc.id)}
               >
-                <p className="truncate text-[13px] font-medium">{loc.name}</p>
-                <p className="tabular-nums text-[11px] text-muted-foreground/50">
+                <p className="truncate text-sm font-medium">{loc.name}</p>
+                <p className="tabular-nums text-xs text-muted-foreground/50">
                   {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
                 </p>
               </button>
@@ -275,25 +278,27 @@ export function SettingsPage() {
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Display */}
-      <Card className="surface overflow-hidden border-0">
-        <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-          <Palette className="h-4 w-4 text-primary/70" />
-          <span className="text-[13px] font-semibold">Display</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
+            <Palette className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Display</span>
         </div>
-        <CardContent className="space-y-4 px-5 pt-0 pb-5">
+        <div className="surface space-y-3 p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04]">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
-              <Label className="text-[13px]">Time Format</Label>
+              <Label className="text-sm">Time Format</Label>
             </div>
             <Select value={timeFormat} onValueChange={(v) => setTimeFormat(v as TimeFormat)}>
-              <SelectTrigger className="h-8 w-[100px] bg-white/[0.03] text-[12px]">
+              <SelectTrigger className="h-8 w-[100px] bg-white/[0.03] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -305,13 +310,13 @@ export function SettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04]">
                 <Palette className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
-              <Label className="text-[13px]">Theme</Label>
+              <Label className="text-sm">Theme</Label>
             </div>
             <Select value={theme} onValueChange={(v) => setTheme(v as ThemeMode)}>
-              <SelectTrigger className="h-8 w-[100px] bg-white/[0.03] text-[12px]">
+              <SelectTrigger className="h-8 w-[100px] bg-white/[0.03] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -321,19 +326,21 @@ export function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Data Range */}
-      <Card className="surface overflow-hidden border-0">
-        <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-          <Calendar className="h-4 w-4 text-primary/70" />
-          <span className="text-[13px] font-semibold">Data Range</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
+            <Calendar className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Data Range</span>
         </div>
-        <CardContent className="space-y-3 px-5 pt-0 pb-5">
+        <div className="surface space-y-3 p-5">
           <div className="flex items-center justify-between">
-            <Label className="text-[13px]">Eclipse Data</Label>
-            <Badge variant="outline" className="border-white/[0.06] bg-white/[0.03] text-[10px] font-normal">
+            <Label className="text-sm">Eclipse Data</Label>
+            <Badge variant="outline" className="border-white/[0.06] bg-white/[0.03] text-xs font-normal">
               {eclipseYearsRange} year{eclipseYearsRange > 1 ? 's' : ''}
             </Badge>
           </div>
@@ -344,37 +351,37 @@ export function SettingsPage() {
             max={5}
             step={1}
           />
-          <div className="flex justify-between text-[11px] text-muted-foreground/40">
+          <div className="flex justify-between text-xs text-muted-foreground/40">
             <span>1 year</span>
             <span>5 years</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Location Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="surface border-white/[0.06] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[15px]">
+            <DialogTitle className="text-base">
               {editingId ? 'Edit Location' : 'Add Location'}
             </DialogTitle>
-            <DialogDescription className="text-[12px] text-muted-foreground/60">
+            <DialogDescription className="text-xs text-muted-foreground/60">
               {editingId ? 'Update this saved location.' : 'Save a new location for quick access.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-[12px] text-muted-foreground/60">Name</Label>
+              <Label className="text-xs text-muted-foreground/60">Name</Label>
               <Input
                 placeholder="e.g. Home, Studio, Beach"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="mt-1.5 h-9 bg-white/[0.03] text-[13px]"
+                className="mt-1.5 h-9 bg-white/[0.03] text-sm"
               />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <Label className="text-[12px] text-muted-foreground/60">Latitude</Label>
+                <Label className="text-xs text-muted-foreground/60">Latitude</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -383,11 +390,11 @@ export function SettingsPage() {
                   placeholder="37.8283"
                   value={formLat}
                   onChange={(e) => setFormLat(e.target.value)}
-                  className="mt-1.5 h-9 bg-white/[0.03] text-[13px]"
+                  className="mt-1.5 h-9 bg-white/[0.03] text-sm"
                 />
               </div>
               <div className="flex-1">
-                <Label className="text-[12px] text-muted-foreground/60">Longitude</Label>
+                <Label className="text-xs text-muted-foreground/60">Longitude</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -396,16 +403,16 @@ export function SettingsPage() {
                   placeholder="-25.5197"
                   value={formLon}
                   onChange={(e) => setFormLon(e.target.value)}
-                  className="mt-1.5 h-9 bg-white/[0.03] text-[13px]"
+                  className="mt-1.5 h-9 bg-white/[0.03] text-sm"
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)} className="text-[12px]">
+            <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">
               Cancel
             </Button>
-            <Button size="sm" onClick={handleDialogSave} className="text-[12px]">
+            <Button size="sm" onClick={handleDialogSave} className="text-xs">
               {editingId ? 'Update' : 'Save'}
             </Button>
           </DialogFooter>

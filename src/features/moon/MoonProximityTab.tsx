@@ -1,5 +1,4 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Camera } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/formatting'
 import { useSettingsStore } from '@/stores/settings-store'
 import type { ProximityEvent } from '@/types'
@@ -26,83 +25,85 @@ function getTimingRelation(event: ProximityEvent): string {
   const labels = typeTimeLabels[event.type]
   const moonBeforeSun = event.moonTime.getTime() <= event.sunTime.getTime()
   const minutes = Math.round(event.timeDiffMinutes)
-  return `${labels.moon} is ${minutes} min ${moonBeforeSun ? 'before' : 'after'} ${labels.sun}.`
+  return `${labels.moon} ${minutes}min ${moonBeforeSun ? 'before' : 'after'} ${labels.sun}`
 }
 
-function getOpportunityNote(event: ProximityEvent): string {
+function getQualityLabel(event: ProximityEvent): { text: string; className: string } {
   if (event.azimuthDiff <= 5 && event.timeDiffMinutes <= 10) {
-    return 'Excellent alignment for wide landscape shots.'
+    return { text: 'Excellent', className: 'text-emerald-400' }
   }
   if (event.azimuthDiff <= 10 && event.timeDiffMinutes <= 20) {
-    return 'Good alignment with both bodies near the same horizon zone.'
+    return { text: 'Good', className: 'text-proximity' }
   }
-  return 'Usable alignment; composition will need careful framing.'
+  return { text: 'Fair', className: 'text-muted-foreground' }
 }
 
 export function MoonProximityTab({ events }: MoonProximityTabProps) {
   const { timeFormat } = useSettingsStore()
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-proximity/8">
+          <Camera className="h-3.5 w-3.5 text-proximity" />
+        </div>
+        <span className="text-sm font-semibold tracking-tight">Photo Opportunities</span>
+      </div>
+
       {events.length === 0 ? (
-        <p className="py-8 text-center text-[14px] text-muted-foreground/60">
+        <p className="py-8 text-center text-sm text-muted-foreground/60">
           No opportunities found in the next year
         </p>
       ) : (
-        events.map((event, i) => (
-          <Card
-            key={i}
-            className="surface-proximity overflow-hidden border-0 transition-colors hover:bg-white/[0.06]"
-          >
-            <CardContent className="px-5 py-4">
-              <div className="space-y-3.5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[21px] font-semibold tracking-tight text-foreground">{formatDate(event.date)}</p>
-                  <p className="text-[15px] font-medium text-proximity">{typeLabels[event.type]}</p>
+        events.map((event, i) => {
+          const quality = getQualityLabel(event)
+          const labels = typeTimeLabels[event.type]
+
+          return (
+            <div
+              key={i}
+              className="surface-proximity p-5"
+            >
+                {/* Header: Date + Type */}
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="text-base font-semibold tracking-tight text-foreground">
+                    {formatDate(event.date)}
+                  </h3>
+                  <span className={`text-sm font-medium ${quality.className}`}>
+                    {typeLabels[event.type]}
+                  </span>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg bg-white/[0.03] px-3 py-2.5">
-                    <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">{typeTimeLabels[event.type].moon}</p>
-                    <p className="text-[17px] font-semibold text-foreground">{formatTime(event.moonTime, timeFormat)}</p>
+                {/* Times row */}
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground/70">{labels.moon}</p>
+                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.moonTime, timeFormat)}</p>
                   </div>
-                  <div className="rounded-lg bg-white/[0.03] px-3 py-2.5">
-                    <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">{typeTimeLabels[event.type].sun}</p>
-                    <p className="text-[17px] font-semibold text-foreground">{formatTime(event.sunTime, timeFormat)}</p>
+                  <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground/70">{labels.sun}</p>
+                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.sunTime, timeFormat)}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="border-white/12 bg-white/[0.06] px-2.5 py-0.5 text-[13px] font-medium text-foreground/90">
-                    Angle gap {event.azimuthDiff.toFixed(1)}°
-                  </Badge>
-                  <Badge variant="outline" className="border-white/12 bg-white/[0.06] px-2.5 py-0.5 text-[13px] font-medium text-foreground/90">
-                    Time gap {Math.round(event.timeDiffMinutes)} min
-                  </Badge>
-                  <Badge variant="outline" className="border-white/12 bg-white/[0.06] px-2.5 py-0.5 text-[13px] font-medium text-foreground/90">
-                    Moon light {event.moonIllumination.toFixed(0)}%
-                  </Badge>
+                {/* Stats row */}
+                <div className="mt-3 flex items-center gap-3 text-sm tabular-nums text-foreground/70">
+                  <span>{event.azimuthDiff.toFixed(1)}° apart</span>
+                  <span className="text-white/10">|</span>
+                  <span>{Math.round(event.timeDiffMinutes)} min gap</span>
+                  <span className="text-white/10">|</span>
+                  <span>{event.moonIllumination.toFixed(0)}% lit</span>
                 </div>
 
-                <div className="rounded-lg bg-white/[0.03] px-3 py-2.5">
-                  <p className="text-[12px] uppercase tracking-wide text-muted-foreground/70">
-                    Solar context
-                  </p>
-                  <p className="text-[15px] font-medium text-foreground">
-                    {typeTimeLabels[event.type].sun} window
-                  </p>
-                  <p className="mt-0.5 text-[13px] text-muted-foreground/85">
-                    {getTimingRelation(event)}
-                  </p>
-                </div>
-
-                <p className="text-[14px] leading-relaxed text-muted-foreground">
-                  Why it matters: {getOpportunityNote(event)}
+                {/* Context line */}
+                <p className="mt-2.5 text-sm text-muted-foreground/60">
+                  {getTimingRelation(event)}
+                  <span className="mx-1.5 text-white/10">·</span>
+                  <span className={quality.className}>{quality.text}</span>
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))
+            </div>
+          )
+        })
       )}
     </div>
   )
