@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Camera, Calendar, ChevronRight, CloudSun } from 'lucide-react'
+import { Moon, Sun, Camera, Calendar, ChevronRight, CloudSun, Sparkles, Orbit } from 'lucide-react'
 import { MoonPhaseIcon } from '@/components/shared/MoonPhaseIcon'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { SectionHeader } from '@/components/shared/SectionHeader'
@@ -15,6 +15,8 @@ import { getMoonData } from '@/lib/astronomy/moon-calculator'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { findProximityEvents } from '@/lib/astronomy/proximity-finder'
 import { findFullMoons } from '@/lib/astronomy/full-moon-finder'
+import { getNextMeteorShower } from '@/lib/astronomy/meteor-calculator'
+import { getComets } from '@/lib/astronomy/comet-calculator'
 import { getWeatherProfileForProximityEvent } from '@/lib/weather/scoring'
 import { formatTime, formatDateShort } from '@/lib/formatting'
 
@@ -44,6 +46,16 @@ export function HomePage() {
         .sort((a, b) => b.score - a.score)
         .slice(0, 3),
     [dailyScores],
+  )
+
+  const nextMeteorShower = useMemo(
+    () => getNextMeteorShower(selectedDate, latitude),
+    [selectedDate, latitude],
+  )
+
+  const activeComets = useMemo(
+    () => getComets(latitude).filter((c) => c.isActive || c.isUpcoming),
+    [latitude],
   )
 
   const nextFullMoonWeather = useMemo(() => {
@@ -160,39 +172,46 @@ export function HomePage() {
       </Link>
 
       {/* Best days */}
-      <div className="animate-in-4 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-300/10">
-            <CloudSun className="h-3.5 w-3.5 text-sky-300" />
+      <Link to="/weather" className="animate-in-4 block">
+        <div className="surface p-5 transition-all duration-300 hover:border-white/[0.08]">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-300/10">
+                <CloudSun className="h-3.5 w-3.5 text-sky-300" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight">This Week</span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">Best Days This Week</span>
-        </div>
-        {nextEvent && countdown && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{'\u23F1\uFE0F'}</span>
-            <span>
-              {nextEvent.label} in <span className="font-semibold text-foreground">{countdown}</span>
-            </span>
-          </div>
-        )}
-        <div className="surface divide-y divide-white/[0.04] overflow-hidden">
-          {bestDays.map((day) => (
-            <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">
-              <p className="w-16 shrink-0 text-sm font-medium text-foreground/80">{formatDateShort(day.date)}</p>
-              <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
-              <span className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold tabular-nums">
-                {day.icon} {day.label} {day.score}/100
+
+          {nextEvent && countdown && (
+            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{'\u23F1\uFE0F'}</span>
+              <span>
+                {nextEvent.label} in <span className="font-semibold text-foreground">{countdown}</span>
               </span>
             </div>
-          ))}
-
-          {bestDays.length === 0 && (
-            <div className="px-4 py-8 text-center text-xs text-muted-foreground/50">
-              No good or excellent days in this forecast
-            </div>
           )}
+
+          <div className="divide-y divide-white/[0.04] overflow-hidden rounded-xl border border-white/[0.04]">
+            {bestDays.map((day) => (
+              <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">
+                <p className="w-16 shrink-0 text-sm font-medium text-foreground/80">{formatDateShort(day.date)}</p>
+                <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
+                <span className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold tabular-nums">
+                  {day.icon} {day.label} {day.score}/100
+                </span>
+              </div>
+            ))}
+
+            {bestDays.length === 0 && (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                No good or excellent days in this forecast
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </Link>
 
       {/* Upcoming */}
       <div className="animate-in-5 space-y-3">
@@ -241,7 +260,45 @@ export function HomePage() {
           </div>
         )}
 
-        {!nextFullMoon && !nextProximity && (
+        {nextMeteorShower && (
+          <div className="surface flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-400/10">
+              <Sparkles className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{nextMeteorShower.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDateShort(nextMeteorShower.peakDate)} · ZHR {nextMeteorShower.zhr}
+              </p>
+            </div>
+            {nextMeteorShower.zhr >= 100 && (
+              <span className="rounded-lg bg-indigo-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-400">
+                Major
+              </span>
+            )}
+          </div>
+        )}
+
+        {activeComets.slice(0, 1).map((comet) => (
+          <div key={comet.id} className="surface-comet flex items-center gap-4 border-cyan-400/10 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10">
+              <Orbit className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{comet.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {comet.isActive ? 'Visible now' : formatDateShort(comet.peakDateParsed)} · Mag {comet.magnitude}
+              </p>
+            </div>
+            {comet.magnitude <= 2 && (
+              <span className="rounded-lg bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-cyan-400">
+                Naked Eye
+              </span>
+            )}
+          </div>
+        ))}
+
+        {!nextFullMoon && !nextProximity && !nextMeteorShower && activeComets.length === 0 && (
           <div className="surface py-10 text-center">
             <p className="text-xs text-muted-foreground/40">No upcoming events</p>
           </div>

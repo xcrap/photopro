@@ -34,10 +34,10 @@ export function useNextEvent() {
   )
 
   const nextEvent = useMemo(() => {
-    const todayEvent = getNextEvent(now, sunTimesToday, moonDataToday)
+    const todayEvent = getNextEvent(now, sunTimesToday, moonDataToday, latitude)
     if (todayEvent) return todayEvent
-    return getNextEvent(now, sunTimesTomorrow, moonDataTomorrow)
-  }, [now, moonDataToday, moonDataTomorrow, sunTimesToday, sunTimesTomorrow])
+    return getNextEvent(now, sunTimesTomorrow, moonDataTomorrow, latitude)
+  }, [now, moonDataToday, moonDataTomorrow, sunTimesToday, sunTimesTomorrow, latitude])
 
   const countdown = nextEvent ? formatCountdown(nextEvent.secondsUntil) : null
 

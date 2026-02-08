@@ -63,7 +63,7 @@
   --secondary: #1a1c36;
   --secondary-foreground: #c8c4be;
   --muted: #1a1c36;
-  --muted-foreground: #6b6d82;
+  --muted-foreground: #8b8da6;
   --accent: #1e2040;
   --accent-foreground: #e8e4de;
   --destructive: #c06c6c;
@@ -101,7 +101,7 @@
   --secondary: #1a1c36;
   --secondary-foreground: #c8c4be;
   --muted: #1a1c36;
-  --muted-foreground: #6b6d82;
+  --muted-foreground: #8b8da6;
   --accent: #1e2040;
   --accent-foreground: #e8e4de;
   --destructive: #c06c6c;
@@ -223,5 +223,15 @@ body::after {
     rgba(15, 16, 33, 0.95) 60%
   );
   border: 1px solid rgba(94, 170, 168, 0.06);
+  border-radius: 1rem;
+}
+
+.surface-comet {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 211, 238, 0.05) 0%,
+    transparent 50%
+  );
+  border: 1px solid rgba(34, 211, 238, 0.08);
   border-radius: 1rem;
 }

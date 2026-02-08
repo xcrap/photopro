@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Moon, Sun, CloudSun, Settings } from 'lucide-react'
+import { Home, Moon, Sun, Stars, CloudSun, Settings } from 'lucide-react'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Home },
   { to: '/weather', label: 'Weather', icon: CloudSun },
   { to: '/sun', label: 'Sun', icon: Sun },
   { to: '/moon', label: 'Moon', icon: Moon },
+  { to: '/night', label: 'Night', icon: Stars },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

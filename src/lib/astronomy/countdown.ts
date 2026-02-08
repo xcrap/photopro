@@ -1,14 +1,27 @@
 import { differenceInSeconds } from 'date-fns'
 import type { MoonData, SunTimes } from '@/types'
+import { getNextMeteorShower } from './meteor-calculator'
 
 export interface NextEvent {
-  type: 'golden-hour-am' | 'golden-hour-pm' | 'blue-hour-am' | 'blue-hour-pm' | 'sunrise' | 'sunset' | 'moonrise' | 'moonset'
+  type:
+    | 'golden-hour-am'
+    | 'golden-hour-pm'
+    | 'blue-hour-am'
+    | 'blue-hour-pm'
+    | 'sunrise'
+    | 'sunset'
+    | 'moonrise'
+    | 'moonset'
+    | 'meteor-shower'
   label: string
   time: Date
   secondsUntil: number
 }
 
-const EVENT_LABELS: Record<NextEvent['type'], string> = {
+const EVENT_LABELS: Record<
+  Exclude<NextEvent['type'], 'meteor-shower'>,
+  string
+> = {
   'golden-hour-am': 'Morning golden hour',
   'golden-hour-pm': 'Golden hour',
   'blue-hour-am': 'Morning blue hour',
@@ -23,8 +36,13 @@ export function getNextEvent(
   now: Date,
   sunTimes: SunTimes,
   moonData: MoonData,
+  latitude?: number,
 ): NextEvent | null {
-  const candidates: Array<{ type: NextEvent['type']; time: Date }> = [
+  const candidates: Array<{
+    type: NextEvent['type']
+    time: Date
+    label?: string
+  }> = [
     { type: 'blue-hour-am', time: sunTimes.blueHourMorningStart },
     { type: 'sunrise', time: sunTimes.sunrise },
     { type: 'golden-hour-am', time: sunTimes.goldenHourMorningStart },
@@ -40,6 +58,21 @@ export function getNextEvent(
     candidates.push({ type: 'moonset', time: moonData.moonset })
   }
 
+  if (latitude !== undefined) {
+    const nextMeteor = getNextMeteorShower(now, latitude)
+    if (nextMeteor && nextMeteor.zhr >= 50) {
+      const daysUntil =
+        (nextMeteor.peakDate.getTime() - now.getTime()) / 86400000
+      if (daysUntil <= 30 && daysUntil > 0) {
+        candidates.push({
+          type: 'meteor-shower',
+          time: nextMeteor.peakDate,
+          label: nextMeteor.name,
+        })
+      }
+    }
+  }
+
   const future = candidates
     .filter((candidate) => candidate.time.getTime() > now.getTime())
     .sort((a, b) => a.time.getTime() - b.time.getTime())
@@ -49,7 +82,9 @@ export function getNextEvent(
   const next = future[0]
   return {
     type: next.type,
-    label: EVENT_LABELS[next.type],
+    label:
+      next.label ??
+      EVENT_LABELS[next.type as Exclude<NextEvent['type'], 'meteor-shower'>],
     time: next.time,
     secondsUntil: differenceInSeconds(next.time, now),
   }
