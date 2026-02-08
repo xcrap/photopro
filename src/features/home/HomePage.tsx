@@ -214,95 +214,97 @@ export function HomePage() {
       </Link>
 
       {/* Upcoming */}
-      <div className="animate-in-5 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.06]">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="animate-in-5">
+        <div className="surface space-y-3 p-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.06]">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">Upcoming</span>
           </div>
-          <span className="text-sm font-semibold tracking-tight">Upcoming</span>
+
+          {nextFullMoon && (
+            <div className="flex items-center gap-4 rounded-xl border border-white/[0.04] p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-moon/8">
+                <Moon className="h-5 w-5 text-moon" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{nextFullMoon.folkName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDateShort(nextFullMoon.date)}
+                </p>
+              </div>
+              <WeatherBadge score={nextFullMoonWeather} />
+              {nextFullMoon.isSupermoon && (
+                <span className="rounded-lg bg-moon/8 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-moon">
+                  Super
+                </span>
+              )}
+            </div>
+          )}
+
+          {nextProximity && (
+            <div className="flex items-center gap-4 rounded-xl border border-proximity/10 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-proximity/8">
+                <Camera className="h-5 w-5 text-proximity" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Photo Opportunity</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDateShort(nextProximity.date)} · {nextProximity.description}
+                </p>
+              </div>
+              <WeatherBadge score={nextProximityWeather} />
+              <span className="rounded-lg bg-proximity/8 px-2.5 py-1 text-xs font-semibold tabular-nums text-proximity">
+                {formatTime(nextProximity.moonTime, timeFormat)}
+              </span>
+            </div>
+          )}
+
+          {nextMeteorShower && (
+            <div className="flex items-center gap-4 rounded-xl border border-white/[0.04] p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-400/10">
+                <Sparkles className="h-5 w-5 text-indigo-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{nextMeteorShower.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDateShort(nextMeteorShower.peakDate)} · ZHR {nextMeteorShower.zhr}
+                </p>
+              </div>
+              {nextMeteorShower.zhr >= 100 && (
+                <span className="rounded-lg bg-indigo-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-400">
+                  Major
+                </span>
+              )}
+            </div>
+          )}
+
+          {activeComets.slice(0, 1).map((comet) => (
+            <div key={comet.id} className="flex items-center gap-4 rounded-xl border border-cyan-400/10 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10">
+                <Orbit className="h-5 w-5 text-cyan-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{comet.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {comet.isActive ? 'Visible now' : formatDateShort(comet.peakDateParsed)} · Mag {comet.magnitude}
+                </p>
+              </div>
+              {comet.magnitude <= 2 && (
+                <span className="rounded-lg bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-cyan-400">
+                  Naked Eye
+                </span>
+              )}
+            </div>
+          ))}
+
+          {!nextFullMoon && !nextProximity && !nextMeteorShower && activeComets.length === 0 && (
+            <div className="py-6 text-center">
+              <p className="text-xs text-muted-foreground">No upcoming events</p>
+            </div>
+          )}
         </div>
-
-        {nextFullMoon && (
-          <div className="surface flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-moon/8">
-              <Moon className="h-5 w-5 text-moon" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{nextFullMoon.folkName}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDateShort(nextFullMoon.date)}
-              </p>
-            </div>
-            <WeatherBadge score={nextFullMoonWeather} />
-            {nextFullMoon.isSupermoon && (
-              <span className="rounded-lg bg-moon/8 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-moon">
-                Super
-              </span>
-            )}
-          </div>
-        )}
-
-        {nextProximity && (
-          <div className="surface-proximity flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-proximity/8">
-              <Camera className="h-5 w-5 text-proximity" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Photo Opportunity</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDateShort(nextProximity.date)} · {nextProximity.description}
-              </p>
-            </div>
-            <WeatherBadge score={nextProximityWeather} />
-            <span className="rounded-lg bg-proximity/8 px-2.5 py-1 text-xs font-semibold tabular-nums text-proximity">
-              {formatTime(nextProximity.moonTime, timeFormat)}
-            </span>
-          </div>
-        )}
-
-        {nextMeteorShower && (
-          <div className="surface flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-400/10">
-              <Sparkles className="h-5 w-5 text-indigo-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{nextMeteorShower.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDateShort(nextMeteorShower.peakDate)} · ZHR {nextMeteorShower.zhr}
-              </p>
-            </div>
-            {nextMeteorShower.zhr >= 100 && (
-              <span className="rounded-lg bg-indigo-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-400">
-                Major
-              </span>
-            )}
-          </div>
-        )}
-
-        {activeComets.slice(0, 1).map((comet) => (
-          <div key={comet.id} className="surface-comet flex items-center gap-4 border-cyan-400/10 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10">
-              <Orbit className="h-5 w-5 text-cyan-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{comet.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {comet.isActive ? 'Visible now' : formatDateShort(comet.peakDateParsed)} · Mag {comet.magnitude}
-              </p>
-            </div>
-            {comet.magnitude <= 2 && (
-              <span className="rounded-lg bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-cyan-400">
-                Naked Eye
-              </span>
-            )}
-          </div>
-        ))}
-
-        {!nextFullMoon && !nextProximity && !nextMeteorShower && activeComets.length === 0 && (
-          <div className="surface py-10 text-center">
-            <p className="text-xs text-muted-foreground/40">No upcoming events</p>
-          </div>
-        )}
       </div>
     </div>
   )
