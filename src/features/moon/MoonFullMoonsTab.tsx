@@ -1,7 +1,11 @@
+import { useEffect, useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
 import { Moon } from 'lucide-react'
+import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/formatting'
+import { useLocationStore } from '@/stores/location-store'
+import { useWeatherStore } from '@/stores/weather-store'
 import type { FullMoonEvent } from '@/types'
 
 interface MoonFullMoonsTabProps {
@@ -10,6 +14,24 @@ interface MoonFullMoonsTabProps {
 }
 
 export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
+  const { latitude, longitude } = useLocationStore()
+  const fetchForecast = useWeatherStore((state) => state.fetchForecast)
+  const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+
+  useEffect(() => {
+    void fetchForecast(latitude, longitude)
+  }, [fetchForecast, latitude, longitude])
+
+  const weatherScoresByDate = useMemo(() => {
+    const scores = new Map<string, ReturnType<typeof getScoreForTime>>()
+    for (const fullMoon of fullMoons) {
+      const eventTime = new Date(fullMoon.date)
+      eventTime.setHours(22, 0, 0, 0)
+      scores.set(fullMoon.date.toISOString(), getScoreForTime(eventTime, 'night'))
+    }
+    return scores
+  }, [fullMoons, getScoreForTime])
+
   function daysUntil(date: Date) {
     const days = differenceInDays(date, now)
     if (days === 0) return 'Today'
@@ -46,6 +68,7 @@ export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
             </div>
             <p className="text-sm text-muted-foreground">{formatDate(fm.date)}</p>
           </div>
+          <WeatherBadge score={weatherScoresByDate.get(fm.date.toISOString()) ?? null} />
           <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-xs tabular-nums text-muted-foreground">
             {daysUntil(fm.date)}
           </span>

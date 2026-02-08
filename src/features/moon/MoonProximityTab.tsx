@@ -1,6 +1,17 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Camera } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { formatDate, formatTime } from '@/lib/formatting'
+import {
+  getAstronomyOpportunityScore,
+  getCombinedOpportunityScore,
+  getWeatherProfileForProximityEvent,
+  isGoodWeather,
+} from '@/lib/weather/scoring'
+import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
+import { useWeatherStore } from '@/stores/weather-store'
 import type { ProximityEvent } from '@/types'
 
 interface MoonProximityTabProps {
@@ -39,23 +50,64 @@ function getQualityLabel(event: ProximityEvent): { text: string; className: stri
 }
 
 export function MoonProximityTab({ events }: MoonProximityTabProps) {
+  const { latitude, longitude } = useLocationStore()
   const { timeFormat } = useSettingsStore()
+  const [showGoodWeatherOnly, setShowGoodWeatherOnly] = useState(false)
+  const fetchForecast = useWeatherStore((state) => state.fetchForecast)
+  const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+
+  useEffect(() => {
+    void fetchForecast(latitude, longitude)
+  }, [fetchForecast, latitude, longitude])
+
+  const rankedEvents = useMemo(() => {
+    const scored = events.map((event) => {
+      const profile = getWeatherProfileForProximityEvent(event)
+      const weatherScore = getScoreForTime(event.sunTime, profile, event.moonIllumination)
+      const astronomyScore = getAstronomyOpportunityScore(event)
+      const combinedScore = weatherScore
+        ? getCombinedOpportunityScore(astronomyScore, weatherScore.score)
+        : astronomyScore
+
+      return {
+        event,
+        weatherScore,
+        combinedScore,
+      }
+    })
+
+    const filtered = showGoodWeatherOnly
+      ? scored.filter((item) => item.weatherScore && isGoodWeather(item.weatherScore.score))
+      : scored
+
+    return filtered.sort((a, b) => {
+      const dateDiff = a.event.date.getTime() - b.event.date.getTime()
+      if (dateDiff !== 0) return dateDiff
+      return b.combinedScore - a.combinedScore
+    })
+  }, [events, getScoreForTime, showGoodWeatherOnly])
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-proximity/8">
-          <Camera className="h-3.5 w-3.5 text-proximity" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-proximity/8">
+            <Camera className="h-3.5 w-3.5 text-proximity" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Photo Opportunities</span>
         </div>
-        <span className="text-sm font-semibold tracking-tight">Photo Opportunities</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground/80">Good weather only</span>
+          <Switch checked={showGoodWeatherOnly} onCheckedChange={setShowGoodWeatherOnly} />
+        </div>
       </div>
 
-      {events.length === 0 ? (
+      {rankedEvents.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground/60">
-          No opportunities found in the next year
+          {showGoodWeatherOnly ? 'No good-weather opportunities in range' : 'No opportunities found in the next year'}
         </p>
       ) : (
-        events.map((event, i) => {
+        rankedEvents.map(({ event, weatherScore, combinedScore }, i) => {
           const quality = getQualityLabel(event)
           const labels = typeTimeLabels[event.type]
 
@@ -69,9 +121,14 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
                   <h3 className="text-base font-semibold tracking-tight text-foreground">
                     {formatDate(event.date)}
                   </h3>
-                  <span className={`text-sm font-medium ${quality.className}`}>
-                    {typeLabels[event.type]}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-proximity/20 bg-proximity/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-proximity">
+                      Combined {combinedScore}
+                    </span>
+                    <span className={`text-sm font-medium ${quality.className}`}>
+                      {typeLabels[event.type]}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Times row */}
@@ -101,6 +158,9 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
                   <span className="mx-1.5 text-white/10">·</span>
                   <span className={quality.className}>{quality.text}</span>
                 </p>
+                <div className="mt-3">
+                  <WeatherBadge score={weatherScore} />
+                </div>
             </div>
           )
         })

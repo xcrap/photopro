@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Sun,
   Sunrise,
@@ -13,8 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SectionHeader } from '@/components/shared/SectionHeader'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { DateNavigator } from '@/components/shared/DateNavigator'
+import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
+import { useWeatherStore } from '@/stores/weather-store'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { getUpcomingEclipses, getVisibilityForLocation } from '@/lib/astronomy/eclipse-calculator'
@@ -25,11 +27,26 @@ import {
 import solarEclipsesData from '@/data/solar-eclipses.json'
 import type { EclipseEvent } from '@/types'
 
+function getEclipseWeatherTime(eclipse: EclipseEvent): Date {
+  const eventTime = new Date(eclipse.date)
+  const match = /^(\d{1,2}):(\d{2})/.exec(eclipse.peakTime)
+  if (!match) {
+    eventTime.setHours(12, 0, 0, 0)
+    return eventTime
+  }
+
+  const [, hours, minutes] = match
+  eventTime.setHours(Number(hours), Number(minutes), 0, 0)
+  return eventTime
+}
+
 export function SunPage() {
   const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
   const { latitude, longitude } = useLocationStore()
   const { timeFormat, eclipseYearsRange } = useSettingsStore()
   const [showAllEclipses, setShowAllEclipses] = useState(false)
+  const fetchForecast = useWeatherStore((state) => state.fetchForecast)
+  const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
 
   const sunTimes = useMemo(() => getSunTimes(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
 
@@ -56,6 +73,18 @@ export function SunPage() {
       : eclipsesWithVisibility.filter((item) => item.visibility > 0)),
     [showAllEclipses, eclipsesWithVisibility],
   )
+  const filteredEclipsesWithWeather = useMemo(
+    () =>
+      filteredEclipses.map((item) => ({
+        ...item,
+        weatherScore: getScoreForTime(getEclipseWeatherTime(item.eclipse), 'night'),
+      })),
+    [filteredEclipses, getScoreForTime],
+  )
+
+  useEffect(() => {
+    void fetchForecast(latitude, longitude)
+  }, [fetchForecast, latitude, longitude])
 
   const typeColors: Record<string, string> = {
     total: 'text-red-300',
@@ -197,7 +226,7 @@ export function SunPage() {
                   : 'No visible solar eclipses for your location in this range'}
               </p>
             ) : (
-              filteredEclipses.map(({ eclipse, visibility }, i) => (
+              filteredEclipsesWithWeather.map(({ eclipse, visibility, weatherScore }, i) => (
                 <div
                   key={i}
                   className="surface-eclipse p-5"
@@ -207,9 +236,12 @@ export function SunPage() {
                       <h3 className="text-base font-semibold tracking-tight text-foreground">
                         {formatDate(eclipse.date)}
                       </h3>
-                      <span className={`text-xs font-semibold uppercase tracking-wider ${typeColors[eclipse.type] || 'text-foreground/60'}`}>
-                        {eclipse.type}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <WeatherBadge score={weatherScore} />
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${typeColors[eclipse.type] || 'text-foreground/60'}`}>
+                          {eclipse.type}
+                        </span>
+                      </div>
                     </div>
 
                     <p className="mt-1 text-sm text-foreground/60">

@@ -1,23 +1,29 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Camera, Calendar, ChevronRight } from 'lucide-react'
+import { Moon, Sun, Camera, Calendar, ChevronRight, CloudSun } from 'lucide-react'
 import { MoonPhaseIcon } from '@/components/shared/MoonPhaseIcon'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { SectionHeader } from '@/components/shared/SectionHeader'
 import { DateNavigator } from '@/components/shared/DateNavigator'
+import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
+import { useWeatherStore } from '@/stores/weather-store'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { findProximityEvents } from '@/lib/astronomy/proximity-finder'
 import { findFullMoons } from '@/lib/astronomy/full-moon-finder'
+import { getWeatherProfileForProximityEvent } from '@/lib/weather/scoring'
 import { formatTime, formatDateShort } from '@/lib/formatting'
 
 export function HomePage() {
   const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
   const { latitude, longitude } = useLocationStore()
   const { timeFormat } = useSettingsStore()
+  const dailyScores = useWeatherStore((state) => state.dailyScores)
+  const fetchForecast = useWeatherStore((state) => state.fetchForecast)
+  const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
 
   const moonData = useMemo(() => getMoonData(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
   const sunTimes = useMemo(() => getSunTimes(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
@@ -29,6 +35,31 @@ export function HomePage() {
     () => findFullMoons(selectedDate, 2)[0] ?? null,
     [selectedDate],
   )
+  const bestDays = useMemo(
+    () =>
+      [...dailyScores]
+        .filter((day) => day.score >= 70)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3),
+    [dailyScores],
+  )
+
+  const nextFullMoonWeather = useMemo(() => {
+    if (!nextFullMoon) return null
+    const eventTime = new Date(nextFullMoon.date)
+    eventTime.setHours(22, 0, 0, 0)
+    return getScoreForTime(eventTime, 'night')
+  }, [getScoreForTime, nextFullMoon])
+
+  const nextProximityWeather = useMemo(() => {
+    if (!nextProximity) return null
+    const profile = getWeatherProfileForProximityEvent(nextProximity)
+    return getScoreForTime(nextProximity.sunTime, profile, nextProximity.moonIllumination)
+  }, [getScoreForTime, nextProximity])
+
+  useEffect(() => {
+    void fetchForecast(latitude, longitude)
+  }, [fetchForecast, latitude, longitude])
 
   return (
     <div className="space-y-6">
@@ -126,8 +157,35 @@ export function HomePage() {
         </div>
       </Link>
 
-      {/* Upcoming */}
+      {/* Best days */}
       <div className="animate-in-4 space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-300/10">
+            <CloudSun className="h-3.5 w-3.5 text-sky-300" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Best Days This Week</span>
+        </div>
+        <div className="surface divide-y divide-white/[0.04] overflow-hidden">
+          {bestDays.map((day) => (
+            <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">
+              <p className="w-16 shrink-0 text-sm font-medium text-foreground/80">{formatDateShort(day.date)}</p>
+              <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
+              <span className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold tabular-nums">
+                {day.icon} {day.label} {day.score}/100
+              </span>
+            </div>
+          ))}
+
+          {bestDays.length === 0 && (
+            <div className="px-4 py-8 text-center text-xs text-muted-foreground/50">
+              No good or excellent days in this forecast
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Upcoming */}
+      <div className="animate-in-5 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.06]">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -146,6 +204,7 @@ export function HomePage() {
                 {formatDateShort(nextFullMoon.date)}
               </p>
             </div>
+            <WeatherBadge score={nextFullMoonWeather} />
             {nextFullMoon.isSupermoon && (
               <span className="rounded-lg bg-moon/8 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest text-moon">
                 Super
@@ -165,6 +224,7 @@ export function HomePage() {
                 {formatDateShort(nextProximity.date)} · {nextProximity.description}
               </p>
             </div>
+            <WeatherBadge score={nextProximityWeather} />
             <span className="rounded-lg bg-proximity/8 px-2.5 py-1 text-xs font-semibold tabular-nums text-proximity">
               {formatTime(nextProximity.moonTime, timeFormat)}
             </span>
