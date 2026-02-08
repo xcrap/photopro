@@ -23,11 +23,11 @@ export function NightCometsTab() {
         </div>
 
         <div className="surface space-y-2 py-10 text-center">
-          <Orbit className="mx-auto h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground/60">
+          <Orbit className="mx-auto h-8 w-8 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">
             No notable comets currently visible
           </p>
-          <p className="text-xs text-muted-foreground/40">
+          <p className="text-xs text-muted-foreground">
             Major comets are rare (a few per decade).
             <br />
             Check back when one is discovered!
@@ -57,16 +57,16 @@ export function NightCometsTab() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold tracking-tight">
-                  {comet.name}
-                </h3>
-                <p className="mt-0.5 text-sm text-muted-foreground/70">
                   {comet.isActive ? (
-                    <span className="font-medium text-cyan-400">
+                    <span className="text-cyan-400">
                       Visible now
                     </span>
                   ) : (
-                    <>Peak: {formatDate(comet.peakDateParsed)}</>
+                    formatDate(comet.peakDateParsed)
                   )}
+                </h3>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {comet.name}
                 </p>
               </div>
               <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-300">
@@ -74,7 +74,7 @@ export function NightCometsTab() {
               </span>
             </div>
 
-            <p className="text-sm text-muted-foreground/80">
+            <p className="text-sm text-muted-foreground">
               {comet.description}
             </p>
 

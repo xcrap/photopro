@@ -34,7 +34,7 @@ import { SectionHeader } from '@/components/shared/SectionHeader'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useGeolocation } from '@/hooks/useGeolocation'
-import type { TimeFormat, ThemeMode } from '@/types'
+import type { TimeFormat } from '@/types'
 
 function normalizeCoordinateInput(value: string): string {
   const compact = value.replace(/\s+/g, '').replace(/,/g, '.')
@@ -96,10 +96,8 @@ export function SettingsPage() {
   } = useLocationStore()
   const {
     timeFormat,
-    theme,
     eclipseYearsRange,
     setTimeFormat,
-    setTheme,
     setEclipseYearsRange,
   } = useSettingsStore()
   const { requestLocation } = useGeolocation({ autoRequest: false })
@@ -376,24 +374,6 @@ export function SettingsPage() {
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04]">
-                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <Label className="text-sm">Theme</Label>
-            </div>
-            <Select value={theme} onValueChange={(v) => setTheme(v as ThemeMode)}>
-              <SelectTrigger className="h-8 w-[100px] bg-white/[0.03] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
 

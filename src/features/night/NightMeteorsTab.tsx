@@ -33,7 +33,7 @@ export function NightMeteorsTab() {
 
       {showers.length === 0 ? (
         <div className="surface py-10 text-center">
-          <p className="text-sm text-muted-foreground/60">
+          <p className="text-sm text-muted-foreground">
             No visible meteor showers in the next 12 months
           </p>
         </div>
@@ -56,15 +56,15 @@ export function NightMeteorsTab() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-base font-semibold tracking-tight">
-                    {shower.name}
-                  </h3>
-                  <p className="mt-0.5 text-sm text-muted-foreground/70">
                     {formatDate(shower.peakDate)}
                     {shower.isActive && (
                       <span className="ml-2 text-xs font-medium text-emerald-400">
                         Active now
                       </span>
                     )}
+                  </h3>
+                  <p className="mt-0.5 text-sm font-medium text-foreground/80">
+                    {shower.name}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -81,7 +81,7 @@ export function NightMeteorsTab() {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground/80">
+              <p className="text-sm text-muted-foreground">
                 {shower.description}
               </p>
 
