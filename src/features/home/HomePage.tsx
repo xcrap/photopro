@@ -10,6 +10,7 @@ import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useWeatherStore } from '@/stores/weather-store'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
+import { useNextEvent } from '@/hooks/useNextEvent'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { findProximityEvents } from '@/lib/astronomy/proximity-finder'
@@ -19,6 +20,7 @@ import { formatTime, formatDateShort } from '@/lib/formatting'
 
 export function HomePage() {
   const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
+  const { nextEvent, countdown } = useNextEvent()
   const { latitude, longitude } = useLocationStore()
   const { timeFormat } = useSettingsStore()
   const dailyScores = useWeatherStore((state) => state.dailyScores)
@@ -165,6 +167,14 @@ export function HomePage() {
           </div>
           <span className="text-sm font-semibold tracking-tight">Best Days This Week</span>
         </div>
+        {nextEvent && countdown && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{'\u23F1\uFE0F'}</span>
+            <span>
+              {nextEvent.label} in <span className="font-semibold text-foreground">{countdown}</span>
+            </span>
+          </div>
+        )}
         <div className="surface divide-y divide-white/[0.04] overflow-hidden">
           {bestDays.map((day) => (
             <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">

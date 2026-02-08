@@ -1,73 +1,109 @@
-# React + TypeScript + Vite
+# PhotoPro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+PhotoPro is a photographer-focused astronomy app for planning shoots around sun, moon, weather, and special events.
 
-Currently, two official plugins are available:
+## Stack
+- React 19 + TypeScript 5.9 + Vite 7 + Bun
+- Tailwind CSS v4 + shadcn/ui
+- Zustand (persisted stores)
+- SunCalc + date-fns
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Main Features
+- Dashboard with sun/moon summary, upcoming events, and best weather days.
+- Live countdown for the next photography-relevant event.
+- Moon module: current phase, full moons, proximity opportunities, eclipses, special events.
+- Sun module: times, photography windows, eclipses.
+- Weather module: 7-day photo forecast with condition scoring, trends, and visual badges.
 
-## React Compiler
+## Weather Scoring Rules
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Weather scoring lives in `src/lib/weather/scoring.ts`.
 
-## Expanding the ESLint configuration
+### Sunset profile
+- `windScore` (ideal <= 9 km/h, max >= 14 km/h)
+- `highCloudScore` (best around ~55% high cloud)
+- `blockingCloudScore = 100 - max(lowCloud, midCloud)`
+- Final score:
+  - `0.4 * windScore + 0.3 * highCloudScore + 0.3 * blockingCloudScore`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Night profile
+- `windScore` (ideal <= 8 km/h, max >= 12 km/h)
+- `clearSkyScore = 100 - cloud_cover`
+- `humidityScore` (ideal <= 65%, max >= 95%)
+- `moonScore = 100 - moonIllumination` (if available)
+- Final score:
+  - `0.3 * windScore + 0.4 * clearSkyScore + 0.15 * humidityScore + 0.15 * moonScore`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Labels
+- `Excellent`: >= 85
+- `Good`: >= 70
+- `Fair`: >= 50
+- `Poor`: < 50
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Opportunity ranking
+- Astronomy score:
+  - `0.6 * azimuthAlignment + 0.4 * timingAlignment`
+- Combined score:
+  - `0.5 * astronomy + 0.5 * weather`
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Trend indicator
+- Weather cards show 24h trend:
+  - `↗ improving`, `↘ getting worse`, or `→ steady`
+- Computed from score delta against the same profile/time 24h later.
+
+## Countdown Logic
+
+Countdown logic lives in:
+- `src/lib/astronomy/countdown.ts`
+- `src/hooks/useNextEvent.ts`
+
+Events considered:
+- Morning blue hour
+- Sunrise
+- Morning golden hour
+- Evening golden hour
+- Sunset
+- Evening blue hour
+- Moonrise (if available)
+- Moonset (if available)
+
+The countdown updates every 30s and appears in "Best Days This Week" on Home.
+
+## Data + Caching
+- Weather source: Open-Meteo hourly forecast (`src/lib/weather/api.ts`)
+- Weather cache: localStorage (`src/lib/weather/cache.ts`)
+- Weather cache TTL: 3 hours (`src/stores/weather-store.ts`)
+
+## Location Behavior
+- GPS-first, manual fallback.
+- Manual/saved selection disables GPS mode to prevent overwrite.
+- Coordinate input accepts both comma and dot decimal separators.
+
+## Development
+
+### Install
+```bash
+bun install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Run
+```bash
+bun run dev
 ```
+
+### Build
+```bash
+bun run build
+```
+
+### Lint
+```bash
+bun run lint
+```
+
+## Project Structure
+- `src/features/` - route-level UI modules
+- `src/lib/astronomy/` - pure astronomy/calculation utilities
+- `src/lib/weather/` - weather API, cache, scoring
+- `src/stores/` - Zustand state (location, settings, weather)
+- `src/data/` - eclipse/supermoon datasets
