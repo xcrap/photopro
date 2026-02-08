@@ -87,12 +87,12 @@ export function WeatherPage() {
       const delta = nextScore.score - day.score
       const key = day.date.toISOString()
 
-      if (delta >= 4) {
+      if (delta >= 10) {
         trends.set(key, { label: `↗ improving (+${delta})`, className: 'text-emerald-300/90' })
         continue
       }
 
-      if (delta <= -4) {
+      if (delta <= -10) {
         trends.set(key, { label: `↘ getting worse (${delta})`, className: 'text-amber-200/90' })
         continue
       }
