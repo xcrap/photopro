@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocationStore } from '@/stores/location-store'
 
-export function useGeolocation() {
+interface UseGeolocationOptions {
+  autoRequest?: boolean
+}
+
+export function useGeolocation({ autoRequest = true }: UseGeolocationOptions = {}) {
   const [isLoading, setIsLoading] = useState(false)
   const gpsEnabled = useLocationStore((s) => s.gpsEnabled)
   const setLocation = useLocationStore((s) => s.setLocation)
@@ -18,6 +22,12 @@ export function useGeolocation() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        // Ignore late GPS results when the user switched to manual mode.
+        if (!useLocationStore.getState().gpsEnabled) {
+          setIsLoading(false)
+          return
+        }
+
         setLocation(position.coords.latitude, position.coords.longitude)
         setGpsStatus('granted')
         setIsLoading(false)
@@ -39,10 +49,10 @@ export function useGeolocation() {
   }, [setLocation, setGpsStatus])
 
   useEffect(() => {
-    if (gpsEnabled) {
+    if (autoRequest && gpsEnabled) {
       requestLocation()
     }
-  }, [gpsEnabled, requestLocation])
+  }, [autoRequest, gpsEnabled, requestLocation])
 
   return { requestLocation, isLoading }
 }

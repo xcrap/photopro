@@ -7,9 +7,9 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { gpsStatus } = useLocationStore()
+  const { gpsEnabled, gpsStatus } = useLocationStore()
 
-  const isGps = gpsStatus === 'granted'
+  const isGps = gpsEnabled && gpsStatus === 'granted'
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.03] bg-[#0a0b14]/90 backdrop-blur-2xl">

@@ -36,6 +36,49 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import type { TimeFormat, ThemeMode } from '@/types'
 
+function normalizeCoordinateInput(value: string): string {
+  const compact = value.replace(/\s+/g, '').replace(/,/g, '.')
+
+  let result = ''
+  let hasDot = false
+
+  for (const ch of compact) {
+    if (ch >= '0' && ch <= '9') {
+      result += ch
+      continue
+    }
+
+    if (ch === '-' && result.length === 0) {
+      result += ch
+      continue
+    }
+
+    if (ch === '.' && !hasDot) {
+      if (result === '' || result === '-') {
+        result += '0'
+      }
+      result += '.'
+      hasDot = true
+    }
+  }
+
+  return result
+}
+
+function parseCoordinate(value: string): number {
+  return Number(normalizeCoordinateInput(value))
+}
+
+function formatCoordinateIfValid(
+  value: string,
+  setValue: (next: string) => void,
+): void {
+  if (value === '' || value === '-' || value === '.' || value === '-.') return
+  const parsed = parseCoordinate(value)
+  if (!Number.isFinite(parsed)) return
+  setValue(parsed.toFixed(6))
+}
+
 export function SettingsPage() {
   const {
     latitude,
@@ -46,6 +89,7 @@ export function SettingsPage() {
     savedLocations,
     setLocation,
     setGpsEnabled,
+    setGpsStatus,
     addSavedLocation,
     updateSavedLocation,
     removeSavedLocation,
@@ -58,10 +102,11 @@ export function SettingsPage() {
     setTheme,
     setEclipseYearsRange,
   } = useSettingsStore()
-  const { requestLocation } = useGeolocation()
+  const { requestLocation } = useGeolocation({ autoRequest: false })
 
   const [manualLat, setManualLat] = useState(latitude.toString())
   const [manualLon, setManualLon] = useState(longitude.toString())
+  const [manualError, setManualError] = useState<string | null>(null)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -69,26 +114,39 @@ export function SettingsPage() {
   const [formName, setFormName] = useState('')
   const [formLat, setFormLat] = useState('')
   const [formLon, setFormLon] = useState('')
+  const [dialogError, setDialogError] = useState<string | null>(null)
 
   const handleGpsToggle = (enabled: boolean) => {
     setGpsEnabled(enabled)
+    if (!enabled) setGpsStatus('idle')
     if (enabled) requestLocation()
   }
 
   const handleManualSubmit = () => {
-    const lat = parseFloat(manualLat)
-    const lon = parseFloat(manualLon)
-    if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-      setLocation(lat, lon, `${lat.toFixed(4)}, ${lon.toFixed(4)}`)
+    const lat = parseCoordinate(manualLat)
+    const lon = parseCoordinate(manualLon)
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setManualError('Enter valid coordinates (lat -90..90, lon -180..180).')
+      return
     }
+
+    setGpsEnabled(false)
+    setGpsStatus('idle')
+    setLocation(lat, lon, `${lat.toFixed(4)}, ${lon.toFixed(4)}`)
+    setManualLat(lat.toFixed(4))
+    setManualLon(lon.toFixed(4))
+    setManualError(null)
   }
 
   const handleSelectSaved = (id: string) => {
     const loc = savedLocations.find((l) => l.id === id)
     if (loc) {
+      setGpsEnabled(false)
+      setGpsStatus('idle')
       setLocation(loc.latitude, loc.longitude, loc.name)
       setManualLat(loc.latitude.toString())
       setManualLon(loc.longitude.toString())
+      setManualError(null)
     }
   }
 
@@ -97,6 +155,7 @@ export function SettingsPage() {
     setFormName('')
     setFormLat('')
     setFormLon('')
+    setDialogError(null)
     setDialogOpen(true)
   }
 
@@ -105,6 +164,7 @@ export function SettingsPage() {
     setFormName(name || '')
     setFormLat(latitude.toFixed(4))
     setFormLon(longitude.toFixed(4))
+    setDialogError(null)
     setDialogOpen(true)
   }
 
@@ -115,19 +175,26 @@ export function SettingsPage() {
       setFormName(loc.name)
       setFormLat(loc.latitude.toString())
       setFormLon(loc.longitude.toString())
+      setDialogError(null)
       setDialogOpen(true)
     }
   }
 
   const handleDialogSave = () => {
-    const lat = parseFloat(formLat)
-    const lon = parseFloat(formLon)
-    if (!formName.trim() || isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return
-    if (editingId) {
-      updateSavedLocation(editingId, { name: formName.trim(), latitude: lat, longitude: lon })
-    } else {
-      addSavedLocation({ name: formName.trim(), latitude: lat, longitude: lon })
+    const lat = parseCoordinate(formLat)
+    const lon = parseCoordinate(formLon)
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setDialogError('Enter valid coordinates (lat -90..90, lon -180..180).')
+      return
     }
+
+    const safeName = formName.trim() || `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+    if (editingId) {
+      updateSavedLocation(editingId, { name: safeName, latitude: lat, longitude: lon })
+    } else {
+      addSavedLocation({ name: safeName, latitude: lat, longitude: lon })
+    }
+    setDialogError(null)
     setDialogOpen(false)
   }
 
@@ -170,7 +237,7 @@ export function SettingsPage() {
           <div className="rounded-xl bg-white/[0.03] p-3.5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Current</p>
             <p className="mt-1 text-sm font-medium">{name || 'Unknown'}</p>
-            <p className="text-xs tabular-nums text-muted-foreground/50">
+            <p className="break-all text-xs tabular-nums text-muted-foreground/50">
               {latitude.toFixed(4)}, {longitude.toFixed(4)}
             </p>
           </div>
@@ -178,31 +245,32 @@ export function SettingsPage() {
           {/* Manual Coordinates */}
           <div className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Manual coordinates</p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Input
-                type="number"
-                step="0.0001"
-                min={-90}
-                max={90}
+                type="text"
+                inputMode="decimal"
                 value={manualLat}
-                onChange={(e) => setManualLat(e.target.value)}
+                onChange={(e) => setManualLat(normalizeCoordinateInput(e.target.value))}
+                onBlur={() => formatCoordinateIfValid(manualLat, setManualLat)}
                 placeholder="Latitude"
-                className="h-9 bg-white/[0.03] text-sm"
+                className="h-9 w-full min-w-0 bg-white/[0.03] text-sm"
               />
               <Input
-                type="number"
-                step="0.0001"
-                min={-180}
-                max={180}
+                type="text"
+                inputMode="decimal"
                 value={manualLon}
-                onChange={(e) => setManualLon(e.target.value)}
+                onChange={(e) => setManualLon(normalizeCoordinateInput(e.target.value))}
+                onBlur={() => formatCoordinateIfValid(manualLon, setManualLon)}
                 placeholder="Longitude"
-                className="h-9 bg-white/[0.03] text-sm"
+                className="h-9 w-full min-w-0 bg-white/[0.03] text-sm"
               />
             </div>
             <Button onClick={handleManualSubmit} size="sm" className="h-8 w-full text-xs">
               Update Location
             </Button>
+            {manualError && (
+              <p className="text-xs text-destructive">{manualError}</p>
+            )}
           </div>
         </div>
       </div>
@@ -379,34 +447,35 @@ export function SettingsPage() {
                 className="mt-1.5 h-9 bg-white/[0.03] text-sm"
               />
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="min-w-0">
                 <Label className="text-xs text-muted-foreground/60">Latitude</Label>
                 <Input
-                  type="number"
-                  step="0.0001"
-                  min={-90}
-                  max={90}
+                  type="text"
+                  inputMode="decimal"
                   placeholder="37.8283"
                   value={formLat}
-                  onChange={(e) => setFormLat(e.target.value)}
-                  className="mt-1.5 h-9 bg-white/[0.03] text-sm"
+                  onChange={(e) => setFormLat(normalizeCoordinateInput(e.target.value))}
+                  onBlur={() => formatCoordinateIfValid(formLat, setFormLat)}
+                  className="mt-1.5 h-9 w-full min-w-0 bg-white/[0.03] text-sm"
                 />
               </div>
-              <div className="flex-1">
+              <div className="min-w-0">
                 <Label className="text-xs text-muted-foreground/60">Longitude</Label>
                 <Input
-                  type="number"
-                  step="0.0001"
-                  min={-180}
-                  max={180}
+                  type="text"
+                  inputMode="decimal"
                   placeholder="-25.5197"
                   value={formLon}
-                  onChange={(e) => setFormLon(e.target.value)}
-                  className="mt-1.5 h-9 bg-white/[0.03] text-sm"
+                  onChange={(e) => setFormLon(normalizeCoordinateInput(e.target.value))}
+                  onBlur={() => formatCoordinateIfValid(formLon, setFormLon)}
+                  className="mt-1.5 h-9 w-full min-w-0 bg-white/[0.03] text-sm"
                 />
               </div>
             </div>
+            {dialogError && (
+              <p className="text-xs text-destructive">{dialogError}</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">
