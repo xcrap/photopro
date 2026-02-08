@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { Cloud, CloudSun, Droplets, RefreshCw, Wind } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -74,6 +74,34 @@ export function WeatherPage() {
   const error = useWeatherStore((state) => state.error)
   const lastUpdated = useWeatherStore((state) => state.lastUpdated)
   const fetchForecast = useWeatherStore((state) => state.fetchForecast)
+  const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+
+  const trendsByDay = useMemo(() => {
+    const trends = new Map<string, { label: string; className: string }>()
+
+    for (const day of dailyScores) {
+      const nextTime = new Date(day.observationTime.getTime() + 24 * 60 * 60 * 1000)
+      const nextScore = getScoreForTime(nextTime, day.profile)
+      if (!nextScore) continue
+
+      const delta = nextScore.score - day.score
+      const key = day.date.toISOString()
+
+      if (delta >= 4) {
+        trends.set(key, { label: `↗ improving (+${delta})`, className: 'text-emerald-300/90' })
+        continue
+      }
+
+      if (delta <= -4) {
+        trends.set(key, { label: `↘ getting worse (${delta})`, className: 'text-amber-200/90' })
+        continue
+      }
+
+      trends.set(key, { label: '→ steady (24h)', className: 'text-foreground/55' })
+    }
+
+    return trends
+  }, [dailyScores, getScoreForTime])
 
   useEffect(() => {
     void fetchForecast(latitude, longitude)
@@ -103,11 +131,14 @@ export function WeatherPage() {
       )}
 
       <div className="space-y-4">
-        {dailyScores.map((day) => (
-          <div
-            key={day.date.toISOString()}
-            className={cn('rounded-2xl p-5 md:p-6', getCardClass(day.label))}
-          >
+        {dailyScores.map((day) => {
+          const trend = trendsByDay.get(day.date.toISOString())
+
+          return (
+            <div
+              key={day.date.toISOString()}
+              className={cn('rounded-2xl p-5 md:p-6', getCardClass(day.label))}
+            >
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start md:gap-5">
               <div className="min-w-0 space-y-3">
                 <p className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
@@ -145,6 +176,11 @@ export function WeatherPage() {
                     {day.score}/100
                   </p>
                 </div>
+                {trend && (
+                  <p className={cn('text-xs font-medium', trend.className)}>
+                    {trend.label}
+                  </p>
+                )}
                 <IconMetricsBlock
                   windSpeed={day.conditions.windSpeed}
                   cloudCover={day.conditions.cloudCover}
@@ -152,8 +188,9 @@ export function WeatherPage() {
                 />
               </aside>
             </div>
-          </div>
-        ))}
+            </div>
+          )
+        })}
 
         {!isLoading && dailyScores.length === 0 && (
           <div className="surface px-4 py-10 text-center text-sm text-muted-foreground/70">
