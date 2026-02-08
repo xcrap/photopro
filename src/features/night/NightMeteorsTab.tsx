@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Sparkles, Eye } from 'lucide-react'
+import { Sparkles, Eye, Star } from 'lucide-react'
 import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { useLocationStore } from '@/stores/location-store'
 import { useWeatherStore } from '@/stores/weather-store'
@@ -67,16 +67,12 @@ export function NightMeteorsTab() {
                     {shower.name}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   {Array.from({ length: stars }).map((_, i) => (
-                    <span key={i} className="text-yellow-400">
-                      {'\u2B50'}
-                    </span>
+                    <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                   ))}
                   {Array.from({ length: 3 - stars }).map((_, i) => (
-                    <span key={i} className="text-white/20">
-                      {'\u2B50'}
-                    </span>
+                    <Star key={i} className="h-3.5 w-3.5 fill-white/10 text-white/10" />
                   ))}
                 </div>
               </div>
