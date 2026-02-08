@@ -9,7 +9,7 @@ import {
 } from '@/lib/weather/scoring'
 import type { DailyPhotoScore, ScoredConditions, WeatherProfile } from '@/lib/weather/scoring'
 
-const CACHE_TTL_MS = 30 * 60 * 1000
+const CACHE_TTL_MS = 3 * 60 * 60 * 1000
 
 interface WeatherState {
   forecast: WeatherForecast | null
