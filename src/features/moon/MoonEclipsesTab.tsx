@@ -21,7 +21,7 @@ const typeColors: Record<string, string> = {
 
 export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
   const { latitude, longitude } = useLocationStore()
-  const [showAllEclipses, setShowAllEclipses] = useState(false)
+  const [visibleOnly, setVisibleOnly] = useState(true)
 
   const eclipses = useMemo(() => {
     const data = lunarEclipsesData.map((e) => ({
@@ -41,10 +41,10 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
   )
 
   const filteredEclipses = useMemo(
-    () => (showAllEclipses
-      ? eclipsesWithVisibility
-      : eclipsesWithVisibility.filter((item) => item.visibility > 0)),
-    [showAllEclipses, eclipsesWithVisibility],
+    () => (visibleOnly
+      ? eclipsesWithVisibility.filter((item) => item.visibility > 0)
+      : eclipsesWithVisibility),
+    [visibleOnly, eclipsesWithVisibility],
   )
 
   return (
@@ -58,17 +58,17 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground/80">
-            {showAllEclipses ? 'All' : 'Visible only'}
+            {visibleOnly ? 'Visible only' : 'All'}
           </span>
-          <Switch checked={showAllEclipses} onCheckedChange={setShowAllEclipses} />
+          <Switch checked={visibleOnly} onCheckedChange={setVisibleOnly} />
         </div>
       </div>
 
       {filteredEclipses.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          {showAllEclipses
-            ? `No lunar eclipses in the next ${yearsRange} year${yearsRange > 1 ? 's' : ''}`
-            : 'No visible lunar eclipses for your location in this range'}
+          {visibleOnly
+            ? 'No visible lunar eclipses for your location in this range'
+            : `No lunar eclipses in the next ${yearsRange} year${yearsRange > 1 ? 's' : ''}`}
         </p>
       ) : (
         filteredEclipses.map(({ eclipse, visibility }, i) => (

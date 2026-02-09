@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './Header'
 import { MobileNav } from './MobileNav'
 import { DesktopNav } from './DesktopNav'
@@ -9,8 +9,14 @@ import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false)
+  const { pathname } = useLocation()
   useGeolocation()
   useTheme()
+
+  useEffect(() => {
+    const viewport = document.querySelector('[data-slot="scroll-area-viewport"]')
+    if (viewport) viewport.scrollTop = 0
+  }, [pathname])
 
   return (
     <div className="flex h-dvh flex-col">
