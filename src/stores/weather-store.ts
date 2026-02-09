@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { fetchWeatherForecast } from '@/lib/weather/api'
 import type { WeatherForecast } from '@/lib/weather/api'
-import { getCachedForecast, setCachedForecast } from '@/lib/weather/cache'
+import { getCachedForecast, getCachedForecastAnyAge, setCachedForecast } from '@/lib/weather/cache'
 import {
   buildDailyPhotoScores,
   findClosestForecastHour,
@@ -78,6 +78,18 @@ export const useWeatherStore = create<WeatherStore>()((set, get) => ({
         lastUpdated: forecast.fetchedAt,
       })
     } catch (error) {
+      const staleCached = getCachedForecastAnyAge(latitude, longitude)
+      if (staleCached) {
+        set({
+          forecast: staleCached,
+          dailyScores: buildDailyPhotoScores(staleCached),
+          isLoading: false,
+          lastUpdated: staleCached.fetchedAt,
+          error: 'Live weather unavailable. Showing older cached forecast.',
+        })
+        return
+      }
+
       const message = error instanceof Error ? error.message : 'Unable to fetch weather forecast'
       set({
         isLoading: false,

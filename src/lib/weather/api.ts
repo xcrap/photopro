@@ -44,8 +44,55 @@ const HOURLY_PARAMS = [
   'relative_humidity_2m',
 ].join(',')
 
+const RETRY_ATTEMPTS = 2
+const RETRY_BASE_DELAY_MS = 500
+const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504])
+
 function toDate(value: string): Date {
   return new Date(value)
+}
+
+function isRetryableStatus(status: number): boolean {
+  return RETRYABLE_STATUS_CODES.has(status)
+}
+
+function getRetryDelayMs(attempt: number): number {
+  return RETRY_BASE_DELAY_MS * 2 ** attempt
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+async function fetchWithRetry(url: string): Promise<Response> {
+  for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt++) {
+    let response: Response
+    try {
+      response = await fetch(url)
+    } catch (error) {
+      if (attempt === RETRY_ATTEMPTS) {
+        if (error instanceof Error) throw error
+        throw new Error('Weather request failed')
+      }
+
+      await sleep(getRetryDelayMs(attempt))
+      continue
+    }
+
+    if (response.ok) {
+      return response
+    }
+
+    if (!isRetryableStatus(response.status) || attempt === RETRY_ATTEMPTS) {
+      throw new Error(`Weather request failed (${response.status})`)
+    }
+
+    await sleep(getRetryDelayMs(attempt))
+  }
+
+  throw new Error('Weather request failed')
 }
 
 function toHourlyForecast(hourly: OpenMeteoHourlyResponse): HourlyForecast[] {
@@ -84,11 +131,7 @@ export async function fetchWeatherForecast(
     end_date: format(endDate, 'yyyy-MM-dd'),
   })
 
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)
-
-  if (!response.ok) {
-    throw new Error(`Weather request failed (${response.status})`)
-  }
+  const response = await fetchWithRetry(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)
 
   const data = (await response.json()) as OpenMeteoResponse
   if (!data.hourly?.time?.length) {

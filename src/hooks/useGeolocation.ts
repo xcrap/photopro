@@ -49,9 +49,13 @@ export function useGeolocation({ autoRequest = true }: UseGeolocationOptions = {
   }, [setLocation, setGpsStatus])
 
   useEffect(() => {
-    if (autoRequest && gpsEnabled) {
+    if (!(autoRequest && gpsEnabled)) return
+
+    const timeoutId = window.setTimeout(() => {
       requestLocation()
-    }
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [autoRequest, gpsEnabled, requestLocation])
 
   return { requestLocation, isLoading }

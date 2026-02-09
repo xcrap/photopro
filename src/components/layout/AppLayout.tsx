@@ -5,13 +5,11 @@ import { MobileNav } from './MobileNav'
 import { DesktopNav } from './DesktopNav'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGeolocation } from '@/hooks/useGeolocation'
-import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false)
   const { pathname } = useLocation()
   useGeolocation()
-  useTheme()
 
   useEffect(() => {
     const viewport = document.querySelector('[data-slot="scroll-area-viewport"]')

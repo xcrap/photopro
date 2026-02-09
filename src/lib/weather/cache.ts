@@ -72,6 +72,17 @@ export function getCachedForecast(
   return deserializeForecast(cached)
 }
 
+export function getCachedForecastAnyAge(
+  latitude: number,
+  longitude: number,
+): WeatherForecast | null {
+  const key = getLocationKey(latitude, longitude)
+  const cache = readCacheMap()
+  const cached = cache[key]
+  if (!cached) return null
+  return deserializeForecast(cached)
+}
+
 export function setCachedForecast(forecast: WeatherForecast): void {
   const key = getLocationKey(forecast.latitude, forecast.longitude)
   const cache = readCacheMap()
