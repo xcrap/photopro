@@ -94,22 +94,24 @@ export function SunPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Sun"
-        description="Times, position & solar eclipses"
-        action={
-          <DateNavigator
-            date={selectedDate}
-            isToday={isToday}
-            onPrevious={goToPreviousDay}
-            onNext={goToNextDay}
-            onToday={goToToday}
-            onDateSelect={goToDate}
-          />
-        }
-      />
+      <div className="animate-in-1">
+        <SectionHeader
+          title="Sun"
+          description="Times, position & solar eclipses"
+          action={
+            <DateNavigator
+              date={selectedDate}
+              isToday={isToday}
+              onPrevious={goToPreviousDay}
+              onNext={goToNextDay}
+              onToday={goToToday}
+              onDateSelect={goToDate}
+            />
+          }
+        />
+      </div>
 
-      <Tabs defaultValue="current" className="space-y-4">
+      <Tabs defaultValue="current" className="animate-in-2 space-y-4">
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0">
           <TabsTrigger value="current" className="rounded-full border border-transparent px-3.5 py-1.5 text-sm data-[state=active]:border-white/[0.06] data-[state=active]:bg-white/[0.05]">
             Current

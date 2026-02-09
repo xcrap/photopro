@@ -109,28 +109,30 @@ export function WeatherPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Weather"
-        description="7-day photo forecast"
-        icon={<CloudSun className="h-4 w-4" />}
-        action={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 rounded-full border border-white/[0.08] px-3 text-xs"
-            onClick={() => void fetchForecast(latitude, longitude, true)}
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
-        }
-      />
+      <div className="animate-in-1">
+        <SectionHeader
+          title="Weather"
+          description="7-day photo forecast"
+          icon={<CloudSun className="h-4 w-4" />}
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 rounded-full border border-white/[0.08] px-3 text-xs"
+              onClick={() => void fetchForecast(latitude, longitude, true)}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </Button>
+          }
+        />
+      </div>
 
       {error && (
-        <div className="surface p-4 text-sm text-destructive">{error}</div>
+        <div className="animate-in-2 surface p-4 text-sm text-destructive">{error}</div>
       )}
 
-      <div className="space-y-4">
+      <div className="animate-in-2 space-y-4">
         {dailyScores.map((day) => {
           const trend = trendsByDay.get(day.date.toISOString())
 

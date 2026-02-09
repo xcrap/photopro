@@ -41,23 +41,25 @@ export function MoonPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Moon"
-        description="Phases, events & opportunities"
-        icon={<Moon className="h-4 w-4" />}
-        action={
-          <DateNavigator
-            date={selectedDate}
-            isToday={isToday}
-            onPrevious={goToPreviousDay}
-            onNext={goToNextDay}
-            onToday={goToToday}
-            onDateSelect={goToDate}
-          />
-        }
-      />
+      <div className="animate-in-1">
+        <SectionHeader
+          title="Moon"
+          description="Phases, events & opportunities"
+          icon={<Moon className="h-4 w-4" />}
+          action={
+            <DateNavigator
+              date={selectedDate}
+              isToday={isToday}
+              onPrevious={goToPreviousDay}
+              onNext={goToNextDay}
+              onToday={goToToday}
+              onDateSelect={goToDate}
+            />
+          }
+        />
+      </div>
 
-      <div className="space-y-4">
+      <div className="animate-in-2 space-y-4">
         {/* Mobile: Select dropdown */}
         <div className="md:hidden">
           <Select value={activeTab} onValueChange={setActiveTab}>

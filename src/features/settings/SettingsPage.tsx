@@ -198,13 +198,15 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Settings"
-        description="Location, display & data"
-      />
+      <div className="animate-in-1">
+        <SectionHeader
+          title="Settings"
+          description="Location, display & data"
+        />
+      </div>
 
       {/* Location */}
-      <div className="space-y-3">
+      <div className="animate-in-2 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
             <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -274,7 +276,7 @@ export function SettingsPage() {
       </div>
 
       {/* Saved Locations */}
-      <div className="space-y-3">
+      <div className="animate-in-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
@@ -348,7 +350,7 @@ export function SettingsPage() {
       </div>
 
       {/* Display */}
-      <div className="space-y-3">
+      <div className="animate-in-4 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
             <Palette className="h-3.5 w-3.5 text-primary" />
@@ -378,7 +380,7 @@ export function SettingsPage() {
       </div>
 
       {/* Data Range */}
-      <div className="space-y-3">
+      <div className="animate-in-5 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8">
             <Calendar className="h-3.5 w-3.5 text-primary" />
@@ -408,7 +410,7 @@ export function SettingsPage() {
 
       {/* Location Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="surface border-white/[0.06] sm:max-w-md">
+        <DialogContent className="overflow-hidden rounded-2xl border-white/[0.06] bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-3xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base">
               {editingId ? 'Edit Location' : 'Add Location'}

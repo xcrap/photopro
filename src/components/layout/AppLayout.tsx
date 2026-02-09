@@ -15,7 +15,9 @@ export function AppLayout() {
 
   useEffect(() => {
     const viewport = document.querySelector('[data-slot="scroll-area-viewport"]')
-    if (viewport) viewport.scrollTop = 0
+    if (viewport) {
+      viewport.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }, [pathname])
 
   return (

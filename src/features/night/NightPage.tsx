@@ -30,13 +30,15 @@ export function NightPage() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Night Sky"
-        description="Meteor showers & comets"
-        icon={<Stars className="h-4 w-4" />}
-      />
+      <div className="animate-in-1">
+        <SectionHeader
+          title="Night Sky"
+          description="Meteor showers & comets"
+          icon={<Stars className="h-4 w-4" />}
+        />
+      </div>
 
-      <div className="space-y-4">
+      <div className="animate-in-2 space-y-4">
         {/* Mobile: Select dropdown */}
         <div className="md:hidden">
           <Select value={activeTab} onValueChange={setActiveTab}>
