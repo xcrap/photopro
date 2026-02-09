@@ -96,7 +96,7 @@ export function HomePage() {
 
       {/* Sun */}
       <Link to="/sun" className="animate-in-2 block">
-        <div className="surface-sun p-5 transition-all duration-300 hover:border-[rgba(212,163,115,0.15)]">
+        <div className="surface-sun transition-all duration-300 hover:border-[rgba(212,163,115,0.15)]">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sun/8">
@@ -128,7 +128,7 @@ export function HomePage() {
 
       {/* Moon */}
       <Link to="/moon" className="animate-in-3 block">
-        <div className="surface-moon p-5 transition-all duration-300 hover:border-[rgba(168,184,216,0.15)]">
+        <div className="surface-moon transition-all duration-300 hover:border-[rgba(168,184,216,0.15)]">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-moon/8">
@@ -173,7 +173,7 @@ export function HomePage() {
 
       {/* Best days */}
       <Link to="/weather" className="animate-in-4 block">
-        <div className="surface p-5 transition-all duration-300 hover:border-white/[0.08]">
+        <div className="surface transition-all duration-300 hover:border-white/[0.08]">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-300/10">
@@ -215,7 +215,7 @@ export function HomePage() {
 
       {/* Upcoming */}
       <div className="animate-in-5">
-        <div className="surface space-y-3 p-5">
+        <div className="surface space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.06]">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />

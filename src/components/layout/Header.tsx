@@ -12,7 +12,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const isGps = gpsEnabled && gpsStatus === 'granted'
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.03] bg-[#0a0b14]/90 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center gap-4 px-5">
         <Button
           variant="ghost"
@@ -23,7 +23,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <span className="text-[17px] font-semibold tracking-tight text-foreground">PhotoPro</span>
+        <span className="text-lg font-bold tracking-tighter text-foreground bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">PhotoPro</span>
 
         <div className="ml-auto">
           <span

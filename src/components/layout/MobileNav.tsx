@@ -24,7 +24,7 @@ interface MobileNavProps {
 export function MobileNav({ open, onClose }: MobileNavProps) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-72 border-white/[0.03] bg-[#0a0b14] p-0">
+      <SheetContent side="left" className="w-72 border-r border-white/10 bg-background/90 backdrop-blur-2xl p-0">
         <SheetHeader className="px-6 pt-8 pb-6">
           <SheetTitle className="text-[18px] font-semibold tracking-tight text-foreground">
             PhotoPro

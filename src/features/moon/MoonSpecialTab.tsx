@@ -42,7 +42,7 @@ export function MoonSpecialTab({ events }: MoonSpecialTabProps) {
         events.map((event, i) => (
           <div
             key={i}
-            className="surface p-5"
+            className="surface"
           >
               {/* Header: Date + Countdown */}
               <div className="flex items-baseline justify-between gap-3">

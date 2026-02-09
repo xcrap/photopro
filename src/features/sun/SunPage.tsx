@@ -128,7 +128,7 @@ export function SunPage() {
               </div>
               <span className="text-sm font-semibold tracking-tight">{isToday ? "Today's" : 'Day'} Times</span>
             </div>
-            <div className="surface p-5 space-y-0">
+            <div className="surface space-y-0">
                 <InfoRow
                   label="Sunrise"
                   value={formatTime(sunTimes.sunrise, timeFormat)}
@@ -155,7 +155,7 @@ export function SunPage() {
               </div>
               <span className="text-sm font-semibold tracking-tight">Photography Hours</span>
             </div>
-            <div className="surface p-5 space-y-0">
+            <div className="surface space-y-0">
                 <InfoRow
                   label="Blue Hour (AM)"
                   sublabel="Cool tones, soft light"
@@ -191,7 +191,7 @@ export function SunPage() {
               </div>
               <span className="text-sm font-semibold tracking-tight">Twilight</span>
             </div>
-            <div className="surface p-5 space-y-0">
+            <div className="surface space-y-0">
                 <InfoRow label="Dawn" value={formatTime(sunTimes.dawn, timeFormat)} />
                 <InfoRow label="Dusk" value={formatTime(sunTimes.dusk, timeFormat)} />
                 <InfoRow label="Nautical Dawn" value={formatTime(sunTimes.nauticalDawn, timeFormat)} />
@@ -229,7 +229,7 @@ export function SunPage() {
               filteredEclipsesWithWeather.map(({ eclipse, visibility, weatherScore }, i) => (
                 <div
                   key={i}
-                  className="surface-eclipse p-5"
+                  className="surface-eclipse"
                 >
                     {/* Header */}
                     <div className="flex items-baseline justify-between gap-3">

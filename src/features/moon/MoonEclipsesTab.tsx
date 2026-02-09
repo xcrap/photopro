@@ -74,7 +74,7 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
         filteredEclipses.map(({ eclipse, visibility }, i) => (
           <div
             key={i}
-            className="surface p-5"
+            className="surface"
           >
               {/* Header */}
               <div className="flex items-baseline justify-between gap-3">

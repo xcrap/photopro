@@ -18,10 +18,10 @@ function getRatingClass(label: string): string {
 
 function getCardClass(label: string): string {
   if (label === 'Excellent') {
-    return 'surface border-white/[0.08] !bg-[linear-gradient(160deg,rgba(34,197,94,0.16)_0%,rgba(15,16,33,0.96)_56%)]'
+    return 'surface border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/30 shadow-[0_0_30px_-10px_rgba(16,185,129,0.1)]'
   }
   if (label === 'Good') {
-    return 'surface border-white/[0.08] !bg-[linear-gradient(160deg,rgba(14,165,233,0.15)_0%,rgba(15,16,33,0.96)_56%)]'
+    return 'surface border-sky-500/20 bg-sky-500/5 hover:border-sky-500/30 shadow-[0_0_30px_-10px_rgba(14,165,233,0.1)]'
   }
   return 'surface'
 }
@@ -34,7 +34,7 @@ interface IconMetricProps {
 
 function IconMetric({ label, displayValue, icon: Icon }: IconMetricProps) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] px-2.5 py-2.5 text-center">
+    <div className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-2.5 text-center">
       <div className="flex justify-center">
         <Icon className="h-5 w-5 text-foreground/75" />
       </div>
@@ -137,7 +137,7 @@ export function WeatherPage() {
           return (
             <div
               key={day.date.toISOString()}
-              className={cn('rounded-2xl p-5 md:p-6', getCardClass(day.label))}
+              className={cn(getCardClass(day.label))}
             >
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start md:gap-5">
               <div className="min-w-0 space-y-3">

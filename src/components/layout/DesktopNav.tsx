@@ -12,7 +12,7 @@ const navItems = [
 
 export function DesktopNav() {
   return (
-    <nav className="hidden border-r border-white/[0.03] bg-[#0a0b14] md:flex md:w-56 md:flex-col">
+    <nav className="hidden border-r border-white/5 bg-background/30 backdrop-blur-xl md:flex md:w-64 md:flex-col">
       <div className="flex flex-col gap-0.5 p-4 pt-5">
         {navItems.map((item) => (
           <NavLink
@@ -22,9 +22,9 @@ export function DesktopNav() {
             className={({ isActive }) =>
               `flex items-center gap-3.5 rounded-xl px-4 py-3 text-[13px] tracking-wide transition-all duration-200 ${
                 isActive
-                  ? 'bg-white/[0.05] font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-white/[0.02] hover:text-foreground/70'
-              }`
+                  ? 'bg-white/10 font-medium text-foreground shadow-sm ring-1 ring-white/10'
+                  : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                }`
             }
           >
             <item.icon className="h-[18px] w-[18px]" />

@@ -31,7 +31,7 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
       </div>
 
       {/* Details */}
-      <div className="surface p-5">
+      <div className="surface">
         <InfoRow
           icon={<Clock className="h-3.5 w-3.5" />}
           label="Moon Age"
@@ -62,7 +62,7 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
       </div>
 
       {/* Rise/Set */}
-      <div className="surface p-5">
+      <div className="surface">
         <InfoRow
           label="Moonrise"
           value={moonData.moonrise ? formatTime(moonData.moonrise, timeFormat) : '—'}
