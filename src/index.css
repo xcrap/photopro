@@ -138,7 +138,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-image: 
+    background-image:
       radial-gradient(circle at 50% 0%, rgba(168, 184, 216, 0.08) 0%, transparent 50%),
       radial-gradient(circle at 100% 0%, rgba(251, 191, 36, 0.03) 0%, transparent 40%);
     background-attachment: fixed;
@@ -146,6 +146,13 @@
   
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight font-medium;
+  }
+  /* Radix ScrollArea uses display:table on its content wrapper, which causes
+     it to expand based on content intrinsic width (e.g. white-space:nowrap text).
+     Fixed table layout sizes cells from the table width instead of content. */
+  [data-radix-scroll-area-viewport] > div {
+    table-layout: fixed !important;
+    width: 100% !important;
   }
 }
 

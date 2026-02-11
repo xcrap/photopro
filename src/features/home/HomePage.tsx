@@ -183,7 +183,7 @@ export function HomePage() {
 
       {/* Best days */}
       <Link to="/weather" className="animate-in-4 block">
-        <div className="surface transition-all duration-300 hover:border-white/[0.08]">
+        <div className="surface transition-all duration-300 hover:border-white/8">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-300/10">
@@ -203,12 +203,12 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="divide-y divide-white/[0.04] overflow-hidden rounded-xl border border-white/[0.04]">
+          <div className="divide-y divide-white/4 overflow-hidden rounded-xl border border-white/4">
             {bestDays.map((day) => (
               <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">
                 <p className="w-16 shrink-0 text-sm font-medium text-foreground/80">{formatDateShort(day.date)}</p>
                 <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
-                <span className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold tabular-nums">
+                <span className="rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums">
                   {day.icon} {day.label} {day.score}/100
                 </span>
               </div>
@@ -227,7 +227,7 @@ export function HomePage() {
       <div className="animate-in-5">
         <div className="surface space-y-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.06]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/6">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Upcoming</span>
@@ -235,7 +235,7 @@ export function HomePage() {
 
           {upcomingEvents.map((event) => {
             if (event.type === 'fullmoon' && nextFullMoon) return (
-              <div key={event.key} className="flex items-center gap-4 rounded-xl border border-white/[0.04] p-4">
+              <div key={event.key} className="flex items-center gap-4 rounded-xl border border-white/4 p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-moon/8">
                   <Moon className="h-5 w-5 text-moon" />
                 </div>
@@ -271,7 +271,7 @@ export function HomePage() {
               </div>
             )
             if (event.type === 'meteor' && nextMeteorShower) return (
-              <div key={event.key} className="flex items-center gap-4 rounded-xl border border-white/[0.04] p-4">
+              <div key={event.key} className="flex items-center gap-4 rounded-xl border border-white/4 p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-400/10">
                   <Sparkles className="h-5 w-5 text-indigo-400" />
                 </div>
