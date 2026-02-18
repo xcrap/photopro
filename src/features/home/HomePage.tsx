@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Moon, Sun, Camera, Calendar, ChevronRight, CloudSun, Sparkles, Orbit } from 'lucide-react'
 import { MoonPhaseIcon } from '@/components/shared/MoonPhaseIcon'
@@ -18,6 +18,7 @@ import { findFullMoons } from '@/lib/astronomy/full-moon-finder'
 import { getNextMeteorShower } from '@/lib/astronomy/meteor-calculator'
 import { getComets } from '@/lib/astronomy/comet-calculator'
 import { getWeatherProfileForProximityEvent } from '@/lib/weather/scoring'
+import { isToday as isTodayFns, differenceInMinutes } from 'date-fns'
 import { formatTime, formatDateShort } from '@/lib/formatting'
 
 export function HomePage() {
@@ -81,6 +82,36 @@ export function HomePage() {
     return events.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [nextFullMoon, nextProximity, nextMeteorShower, activeComets])
 
+  // Countdown for sun events within 2 hours
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const sunCountdowns = useMemo(() => {
+    if (!isToday) return { sunrise: null, sunset: null, goldenHour: null }
+    const events = [
+      { key: 'sunrise' as const, time: sunTimes.sunrise },
+      { key: 'sunset' as const, time: sunTimes.sunset },
+      { key: 'goldenHour' as const, time: sunTimes.goldenHourStart },
+    ] as const
+    const result: Record<string, string | null> = { sunrise: null, sunset: null, goldenHour: null }
+    for (const { key, time } of events) {
+      const diff = differenceInMinutes(time, now)
+      if (diff > 0 && diff <= 120) {
+        if (diff >= 60) {
+          const h = Math.floor(diff / 60)
+          const m = diff % 60
+          result[key] = m > 0 ? `in ${h}h ${m}m` : `in ${h}h`
+        } else {
+          result[key] = `in ${diff}m`
+        }
+      }
+    }
+    return result
+  }, [isToday, sunTimes, now])
+
   useEffect(() => {
     void fetchForecast(latitude, longitude)
   }, [fetchForecast, latitude, longitude])
@@ -119,17 +150,38 @@ export function HomePage() {
           <div className="space-y-0">
             <InfoRow
               label="Sunrise"
-              value={formatTime(sunTimes.sunrise, timeFormat)}
+              value={
+                <span className="flex items-center gap-2">
+                  {sunCountdowns.sunrise && (
+                    <span className="text-xs font-normal text-amber-400/70">{sunCountdowns.sunrise}</span>
+                  )}
+                  <span>{formatTime(sunTimes.sunrise, timeFormat)}</span>
+                </span>
+              }
               icon={<Sun className="h-3.5 w-3.5 text-amber-400/80" />}
             />
             <InfoRow
               label="Sunset"
-              value={formatTime(sunTimes.sunset, timeFormat)}
+              value={
+                <span className="flex items-center gap-2">
+                  {sunCountdowns.sunset && (
+                    <span className="text-xs font-normal text-orange-400/70">{sunCountdowns.sunset}</span>
+                  )}
+                  <span>{formatTime(sunTimes.sunset, timeFormat)}</span>
+                </span>
+              }
               icon={<Sun className="h-3.5 w-3.5 text-orange-400/80" />}
             />
             <InfoRow
               label="Golden Hour"
-              value={`${formatTime(sunTimes.goldenHourStart, timeFormat)} – ${formatTime(sunTimes.sunset, timeFormat)}`}
+              value={
+                <span className="flex items-center gap-2">
+                  {sunCountdowns.goldenHour && (
+                    <span className="text-xs font-normal text-yellow-400/70">{sunCountdowns.goldenHour}</span>
+                  )}
+                  <span>{`${formatTime(sunTimes.goldenHourStart, timeFormat)} – ${formatTime(sunTimes.sunset, timeFormat)}`}</span>
+                </span>
+              }
               icon={<Camera className="h-3.5 w-3.5 text-yellow-400/70" />}
             />
           </div>
@@ -204,15 +256,23 @@ export function HomePage() {
           )}
 
           <div className="divide-y divide-white/4 overflow-hidden rounded-xl border border-white/4">
-            {bestDays.map((day) => (
-              <div key={day.date.toISOString()} className="flex items-center gap-3 px-4 py-3">
-                <p className="w-16 shrink-0 text-sm font-medium text-foreground/80">{formatDateShort(day.date)}</p>
-                <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
-                <span className="rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums">
-                  {day.icon} {day.label} {day.score}/100
-                </span>
-              </div>
-            ))}
+            {bestDays.map((day) => {
+              const dayIsToday = isTodayFns(day.date)
+              return (
+                <div
+                  key={day.date.toISOString()}
+                  className={`flex items-center gap-3 px-4 py-3 ${dayIsToday ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}
+                >
+                  <p className={`w-16 shrink-0 text-sm font-medium ${dayIsToday ? 'text-sky-300' : 'text-foreground/80'}`}>
+                    {dayIsToday ? 'Today' : formatDateShort(day.date)}
+                  </p>
+                  <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
+                  <span className="rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums">
+                    {day.icon} {day.label} {day.score}/100
+                  </span>
+                </div>
+              )
+            })}
 
             {bestDays.length === 0 && (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">
