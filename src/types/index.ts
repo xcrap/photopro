@@ -38,6 +38,7 @@ export interface MoonData {
   emoji: string
   altitude: number
   azimuth: number
+  tiltAngle: number
   moonrise: Date | null
   moonset: Date | null
 }

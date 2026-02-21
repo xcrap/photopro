@@ -21,7 +21,7 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
     <div className="space-y-5">
       {/* Phase hero */}
       <div className="flex flex-col items-center gap-5 px-6 py-8">
-        <MoonPhaseIcon phase={moonData.phase} size={140} />
+        <MoonPhaseIcon phase={moonData.phase} tiltAngle={moonData.tiltAngle} size={140} />
         <div className="text-center">
           <h3 className="text-xl font-bold tracking-tight">{moonData.phaseName}</h3>
           <p className="mt-1 text-sm tabular-nums text-muted-foreground">

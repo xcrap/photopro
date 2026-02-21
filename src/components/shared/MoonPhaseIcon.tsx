@@ -3,10 +3,11 @@ import { useId } from 'react'
 interface MoonPhaseIconProps {
   phase: number
   size?: number
+  tiltAngle?: number
   className?: string
 }
 
-export function MoonPhaseIcon({ phase, size = 64, className = '' }: MoonPhaseIconProps) {
+export function MoonPhaseIcon({ phase, size = 64, tiltAngle = 0, className = '' }: MoonPhaseIconProps) {
   const uid = useId().replace(/:/g, '')
   const r = size / 2 - 1
   const cx = size / 2
@@ -53,12 +54,14 @@ export function MoonPhaseIcon({ phase, size = 64, className = '' }: MoonPhaseIco
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
       </defs>
-      {/* Dark side */}
-      <circle cx={cx} cy={cy} r={r} fill={`url(#${uid}-dark)`} />
-      {/* Lit side */}
-      {illuminatedPath && (
-        <path d={illuminatedPath} fill={`url(#${uid}-lit)`} />
-      )}
+      <g transform={`rotate(${tiltAngle}, ${cx}, ${cy})`}>
+        {/* Dark side */}
+        <circle cx={cx} cy={cy} r={r} fill={`url(#${uid}-dark)`} />
+        {/* Lit side */}
+        {illuminatedPath && (
+          <path d={illuminatedPath} fill={`url(#${uid}-lit)`} />
+        )}
+      </g>
       {/* Rim light */}
       <circle
         cx={cx}

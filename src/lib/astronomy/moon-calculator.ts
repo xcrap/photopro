@@ -54,6 +54,12 @@ export function getMoonData(date: Date, lat: number, lon: number): MoonData {
   // Moon age in days (phase * synodic month)
   const age = phase * SYNODIC_MONTH
 
+  // Bright limb tilt angle relative to local vertical
+  // illumination.angle = position angle of bright limb (from celestial north)
+  // position.parallacticAngle = angle between zenith and celestial north pole
+  // The difference gives the rotation of the bright limb as seen by the observer
+  const tiltAngle = (illumination.angle - position.parallacticAngle) * (180 / Math.PI)
+
   return {
     phase,
     phaseName: getPhaseName(phase),
@@ -63,6 +69,7 @@ export function getMoonData(date: Date, lat: number, lon: number): MoonData {
     emoji: getPhaseEmoji(phase),
     altitude: altitudeDeg,
     azimuth: azimuthDeg,
+    tiltAngle,
     moonrise: moonTimes.rise ?? null,
     moonset: moonTimes.set ?? null,
   }

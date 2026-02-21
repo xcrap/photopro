@@ -202,7 +202,7 @@ export function HomePage() {
           </div>
 
           <div className="flex items-center gap-5 pb-2">
-            <MoonPhaseIcon phase={moonData.phase} size={56} />
+            <MoonPhaseIcon phase={moonData.phase} tiltAngle={moonData.tiltAngle} size={56} />
             <div>
               <p className="text-base font-semibold tracking-tight">{moonData.phaseName}</p>
               <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
