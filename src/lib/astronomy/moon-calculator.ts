@@ -54,11 +54,15 @@ export function getMoonData(date: Date, lat: number, lon: number): MoonData {
   // Moon age in days (phase * synodic month)
   const age = phase * SYNODIC_MONTH
 
-  // Bright limb tilt angle relative to local vertical
-  // illumination.angle = position angle of bright limb (from celestial north)
-  // position.parallacticAngle = angle between zenith and celestial north pole
-  // The difference gives the rotation of the bright limb as seen by the observer
-  const tiltAngle = (illumination.angle - position.parallacticAngle) * (180 / Math.PI)
+  // Bright limb tilt angle for SVG rendering
+  // illumination.angle (chi) = position angle of bright limb from celestial north, eastward (CCW on disk)
+  // position.parallacticAngle (q) = angle from zenith to celestial north at the moon's position
+  // chi - q = zenith angle of bright limb (CCW from zenith, astronomical convention)
+  // SVG needs: negate for CW convention, offset by ±90° since the SVG draws
+  // the bright limb at 3 o'clock (waxing) or 9 o'clock (waning) by default
+  const isWaxing = phase <= 0.5
+  const zenithAngleDeg = (illumination.angle - position.parallacticAngle) * (180 / Math.PI)
+  const tiltAngle = -zenithAngleDeg + (isWaxing ? -90 : 90)
 
   return {
     phase,
