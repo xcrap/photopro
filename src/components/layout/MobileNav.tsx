@@ -3,6 +3,7 @@ import { Home, Moon, Sun, Stars, CloudSun, Settings } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -29,6 +30,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
           <SheetTitle className="text-[18px] font-semibold tracking-tight text-foreground">
             PhotoPro
           </SheetTitle>
+          <SheetDescription className="sr-only">Navigation menu</SheetDescription>
         </SheetHeader>
         <nav className="flex flex-col gap-0.5 px-4">
           {navItems.map((item) => (
