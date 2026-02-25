@@ -121,17 +121,33 @@ function summarizeSunset(score: Score): string {
   const { windScore = 0, gustScore = 100, highCloudScore = 0, blockingCloudScore = 0 } = score.breakdown
   if (blockingCloudScore < 45) return 'Low/mid clouds may block color'
   if (highCloudScore >= 75 && windScore >= 70 && gustScore >= 60) return 'Light wind, ideal red-sky setup'
-  if (gustScore < 50) return 'Gusts may affect long-lens stability'
-  if (windScore < 50) return 'Wind may shake long-lens sunset shots'
+
+  // Find weakest component and report it
+  const factors: Array<[number, string]> = [
+    [gustScore, 'Gusts may affect long-lens stability'],
+    [windScore, 'Wind may shake long-lens sunset shots'],
+    [highCloudScore, 'High cloud cover not ideal for color'],
+  ]
+  const weakest = factors.reduce((a, b) => (a[0] <= b[0] ? a : b))
+  if (weakest[0] < 70) return weakest[1]
+
   return 'Mixed sunset conditions'
 }
 
 function summarizeNight(score: Score): string {
   const { clearSkyScore = 0, windScore = 0, gustScore = 100, humidityScore = 0 } = score.breakdown
-  if (clearSkyScore < 55) return 'Clouds likely limit night visibility'
-  if (gustScore < 50) return 'Gusty conditions may blur exposures'
-  if (windScore < 55) return 'Wind may blur long exposures'
-  if (humidityScore < 50) return 'Humidity may reduce sharpness'
+  if (clearSkyScore < 30) return 'Clouds likely limit night visibility'
+
+  // Find weakest component and report it
+  const factors: Array<[number, string]> = [
+    [clearSkyScore, 'Clouds likely limit night visibility'],
+    [gustScore, 'Gusty conditions may blur exposures'],
+    [windScore, 'Wind may blur long exposures'],
+    [humidityScore, 'Humidity may reduce sharpness'],
+  ]
+  const weakest = factors.reduce((a, b) => (a[0] <= b[0] ? a : b))
+  if (weakest[0] < 70) return weakest[1]
+
   return 'Clear and stable for long exposures'
 }
 
