@@ -162,8 +162,8 @@ export function WeatherPage() {
                   </p>
                   <p className="text-xs text-foreground/60">
                     {day.profile === 'sunset'
-                      ? 'Scored for color potential: high clouds + low/mid cloud clearance + stable wind.'
-                      : 'Scored for night shooting: clear sky + low wind + humidity + moon darkness.'}
+                      ? 'Scored for color potential: high clouds + low/mid cloud clearance + stable wind + low gusts.'
+                      : 'Scored for night shooting: clear sky + low wind + low gusts + humidity + moon darkness.'}
                   </p>
                 </div>
               </div>
