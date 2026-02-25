@@ -8,6 +8,7 @@ export interface Score {
   score: number
   breakdown: {
     windScore: number
+    gustScore?: number
     highCloudScore?: number
     blockingCloudScore?: number
     clearSkyScore?: number
@@ -56,6 +57,14 @@ function scoreWind(speedKmh: number, thresholds: WindThresholds): number {
   return Math.round(100 - ((speedKmh - thresholds.ideal) / (thresholds.max - thresholds.ideal)) * 100)
 }
 
+function scoreGusts(gustsKmh: number): number {
+  const ideal = 15
+  const max = 30
+  if (gustsKmh <= ideal) return 100
+  if (gustsKmh >= max) return 0
+  return Math.round(100 - ((gustsKmh - ideal) / (max - ideal)) * 100)
+}
+
 function scoreHighClouds(cloudCoverHigh: number): number {
   const idealCenter = 55
   return Math.round(clamp(100 - Math.abs(cloudCoverHigh - idealCenter) * 2))
@@ -70,25 +79,27 @@ function scoreHumidity(relativeHumidity: number): number {
 }
 
 function scoreSunsetConditions(weather: HourlyForecast): Score {
-  const windScore = scoreWind(weather.wind_speed_10m, { ideal: 9, max: 14 })
+  const windScore = scoreWind(weather.wind_speed_10m, { ideal: 7, max: 12 })
+  const gustScore = scoreGusts(weather.wind_gusts_10m)
   const highCloudScore = scoreHighClouds(weather.cloud_cover_high)
   const blockingCloudScore = 100 - Math.max(weather.cloud_cover_low, weather.cloud_cover_mid)
 
   return {
-    score: Math.round(windScore * 0.4 + highCloudScore * 0.3 + blockingCloudScore * 0.3),
-    breakdown: { windScore, highCloudScore, blockingCloudScore },
+    score: Math.round(windScore * 0.30 + gustScore * 0.15 + highCloudScore * 0.25 + blockingCloudScore * 0.30),
+    breakdown: { windScore, gustScore, highCloudScore, blockingCloudScore },
   }
 }
 
 function scoreNightConditions(weather: HourlyForecast, moonIllumination?: number): Score {
   const windScore = scoreWind(weather.wind_speed_10m, { ideal: 8, max: 12 })
+  const gustScore = scoreGusts(weather.wind_gusts_10m)
   const clearSkyScore = 100 - weather.cloud_cover
   const humidityScore = scoreHumidity(weather.relative_humidity_2m)
   const moonScore = moonIllumination !== undefined ? (100 - moonIllumination) : 100
 
   return {
-    score: Math.round(windScore * 0.3 + clearSkyScore * 0.4 + humidityScore * 0.15 + moonScore * 0.15),
-    breakdown: { windScore, clearSkyScore, humidityScore, moonScore },
+    score: Math.round(windScore * 0.20 + gustScore * 0.15 + clearSkyScore * 0.35 + humidityScore * 0.15 + moonScore * 0.15),
+    breakdown: { windScore, gustScore, clearSkyScore, humidityScore, moonScore },
   }
 }
 
@@ -107,16 +118,18 @@ export function getScoreIcon(score: number): string {
 }
 
 function summarizeSunset(score: Score): string {
-  const { windScore = 0, highCloudScore = 0, blockingCloudScore = 0 } = score.breakdown
+  const { windScore = 0, gustScore = 100, highCloudScore = 0, blockingCloudScore = 0 } = score.breakdown
   if (blockingCloudScore < 45) return 'Low/mid clouds may block color'
-  if (highCloudScore >= 75 && windScore >= 70) return 'Light wind, ideal red-sky setup'
+  if (highCloudScore >= 75 && windScore >= 70 && gustScore >= 60) return 'Light wind, ideal red-sky setup'
+  if (gustScore < 50) return 'Gusts may affect long-lens stability'
   if (windScore < 50) return 'Wind may shake long-lens sunset shots'
   return 'Mixed sunset conditions'
 }
 
 function summarizeNight(score: Score): string {
-  const { clearSkyScore = 0, windScore = 0, humidityScore = 0 } = score.breakdown
+  const { clearSkyScore = 0, windScore = 0, gustScore = 100, humidityScore = 0 } = score.breakdown
   if (clearSkyScore < 55) return 'Clouds likely limit night visibility'
+  if (gustScore < 50) return 'Gusty conditions may blur exposures'
   if (windScore < 55) return 'Wind may blur long exposures'
   if (humidityScore < 50) return 'Humidity may reduce sharpness'
   return 'Clear and stable for long exposures'

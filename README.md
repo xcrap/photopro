@@ -20,19 +20,21 @@ PhotoPro is a photographer-focused astronomy app for planning shoots around sun,
 Weather scoring lives in `src/lib/weather/scoring.ts`.
 
 ### Sunset profile
-- `windScore` (ideal <= 9 km/h, max >= 14 km/h)
-- `highCloudScore` (best around ~55% high cloud)
-- `blockingCloudScore = 100 - max(lowCloud, midCloud)`
+- `windScore` (ideal <= 7 km/h, max >= 12 km/h)
+- `gustScore` (ideal <= 15 km/h, max >= 30 km/h) — penalizes gusty conditions that affect long-lens stability
+- `highCloudScore` (best around ~55% high cloud — creates red/colorful skies)
+- `blockingCloudScore = 100 - max(lowCloud, midCloud)` — low/mid clouds block light
 - Final score:
-  - `0.4 * windScore + 0.3 * highCloudScore + 0.3 * blockingCloudScore`
+  - `0.30 * windScore + 0.15 * gustScore + 0.25 * highCloudScore + 0.30 * blockingCloudScore`
 
 ### Night profile
 - `windScore` (ideal <= 8 km/h, max >= 12 km/h)
+- `gustScore` (ideal <= 15 km/h, max >= 30 km/h)
 - `clearSkyScore = 100 - cloud_cover`
 - `humidityScore` (ideal <= 65%, max >= 95%)
 - `moonScore = 100 - moonIllumination` (if available)
 - Final score:
-  - `0.3 * windScore + 0.4 * clearSkyScore + 0.15 * humidityScore + 0.15 * moonScore`
+  - `0.20 * windScore + 0.15 * gustScore + 0.35 * clearSkyScore + 0.15 * humidityScore + 0.15 * moonScore`
 
 ### Labels
 - `Excellent`: >= 85
@@ -70,7 +72,7 @@ Events considered:
 The countdown updates every 30s and appears in "Best Days This Week" on Home.
 
 ## Data + Caching
-- Weather source: Open-Meteo hourly forecast (`src/lib/weather/api.ts`)
+- Weather source: Open-Meteo hourly forecast using ICON model (`src/lib/weather/api.ts`) — ICON provides better low/mid cloud detection for Atlantic islands
 - Weather cache: localStorage (`src/lib/weather/cache.ts`)
 - Weather cache TTL: 3 hours (`src/stores/weather-store.ts`)
 
