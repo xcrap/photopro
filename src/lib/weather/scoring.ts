@@ -247,13 +247,39 @@ export function buildDailyPhotoScores(forecast: WeatherForecast): DailyPhotoScor
 
     let best: ScoredConditions | null = null
     let bestWeather: HourlyForecast | null = null
+    let bestSunset: ScoredConditions | null = null
+    let bestSunsetWeather: HourlyForecast | null = null
+    let bestNight: ScoredConditions | null = null
+    let bestNightWeather: HourlyForecast | null = null
 
     for (const candidate of fallback) {
       const scored = scoreWeatherConditions(candidate.profile, candidate.weather)
-      if (!best || scored.score > best.score) {
-        best = scored
-        bestWeather = candidate.weather
+      if (candidate.profile === 'sunset') {
+        if (!bestSunset || scored.score > bestSunset.score) {
+          bestSunset = scored
+          bestSunsetWeather = candidate.weather
+        }
+      } else {
+        if (!bestNight || scored.score > bestNight.score) {
+          bestNight = scored
+          bestNightWeather = candidate.weather
+        }
       }
+    }
+
+    // Prefer sunset profile — only pick night if it scores significantly better (>15 points)
+    if (bestSunset && bestSunsetWeather) {
+      const nightMargin = (bestNight?.score ?? 0) - bestSunset.score
+      if (bestNight && bestNightWeather && nightMargin > 15) {
+        best = bestNight
+        bestWeather = bestNightWeather
+      } else {
+        best = bestSunset
+        bestWeather = bestSunsetWeather
+      }
+    } else if (bestNight && bestNightWeather) {
+      best = bestNight
+      bestWeather = bestNightWeather
     }
 
     if (!best || !bestWeather) continue
