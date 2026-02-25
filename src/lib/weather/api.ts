@@ -3,6 +3,7 @@ import { addDays, format } from 'date-fns'
 export interface HourlyForecast {
   time: Date
   wind_speed_10m: number
+  wind_gusts_10m: number
   cloud_cover: number
   cloud_cover_low: number
   cloud_cover_mid: number
@@ -21,6 +22,7 @@ export interface WeatherForecast {
 interface OpenMeteoHourlyResponse {
   time: string[]
   wind_speed_10m: number[]
+  wind_gusts_10m: number[]
   cloud_cover: number[]
   cloud_cover_low: number[]
   cloud_cover_mid: number[]
@@ -37,6 +39,7 @@ interface OpenMeteoResponse {
 
 const HOURLY_PARAMS = [
   'wind_speed_10m',
+  'wind_gusts_10m',
   'cloud_cover',
   'cloud_cover_low',
   'cloud_cover_mid',
@@ -103,6 +106,7 @@ function toHourlyForecast(hourly: OpenMeteoHourlyResponse): HourlyForecast[] {
     points.push({
       time: toDate(hourly.time[i]),
       wind_speed_10m: hourly.wind_speed_10m[i] ?? 0,
+      wind_gusts_10m: hourly.wind_gusts_10m[i] ?? 0,
       cloud_cover: hourly.cloud_cover[i] ?? 0,
       cloud_cover_low: hourly.cloud_cover_low[i] ?? 0,
       cloud_cover_mid: hourly.cloud_cover_mid[i] ?? 0,
@@ -129,6 +133,7 @@ export async function fetchWeatherForecast(
     timezone: 'auto',
     start_date: format(startDate, 'yyyy-MM-dd'),
     end_date: format(endDate, 'yyyy-MM-dd'),
+    models: 'icon_seamless',
   })
 
   const response = await fetchWithRetry(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)
