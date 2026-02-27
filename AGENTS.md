@@ -1,25 +1,27 @@
-# PhotoPro - Photographer's Astronomy App
+# PhotoPro — Monorepo
 
-## Tech Stack
-- React 19 + Vite 7 + TypeScript 5.9 + Bun 1.3
-- shadcn/ui + Tailwind CSS v4 + Zustand 5 + SunCalc + date-fns + lucide-react
-- Dark astronomy theme with pastel accents (oklch color space)
+> **CLAUDE.md** is a symlink to this file.
 
-## Architecture
-- Feature modules in `src/features/` (home, moon, sun, settings)
-- Astronomy calculations: pure functions in `src/lib/astronomy/` (8 files)
-- Pre-computed data: eclipse/supermoon JSON in `src/data/` (2024-2030)
-- Zustand stores with localStorage persistence in `src/stores/`
-- GPS-first location with manual fallback
+## Structure
 
-## Key Patterns
-- `verbatimModuleSyntax: true` → always use `import type` for type-only imports
-- `noUnusedLocals: true` → remove unused imports/variables before build
-- shadcn/ui components in `src/components/ui/`, shared components in `src/components/shared/`
-- Tailwind v4 with `@tailwindcss/vite` plugin, no config file
-- Path alias: `@/` maps to `src/`
+```
+photopro/
+├── web/             ← React 19 + Vite 7 + TypeScript 5.9 + Bun + Tailwind v4 + shadcn/ui
+├── ios/             ← Swift 5.10 + SwiftUI (iOS 17+) + Xcode 16+
+├── ALGORITHM.md     ← Canonical algorithm specification (shared between platforms)
+├── AGENTS.md        ← This file
+└── README.md
+```
 
-## Commands
-- `bun run dev` → development server
-- `bun run build` → production build (tsc + vite build)
-- `bun run lint` → eslint
+## Algorithm Sync Rule
+
+**When `ALGORITHM.md` is updated, the corresponding implementation must be updated in both `web/` and `ios/`.** The algorithm file is the single source of truth — platform code must match it.
+
+- Web implementation: `web/src/lib/astronomy/` and `web/src/lib/weather/scoring.ts`
+- iOS implementation: `ios/PhotoPro/PhotoPro/Lib/Astronomy/` and `ios/PhotoPro/PhotoPro/Lib/Weather/WeatherScoring.swift`
+
+## Platform Details
+
+Each platform has its own `AGENTS.md` with stack-specific instructions:
+- `web/AGENTS.md` — commands, patterns, conventions for the web app
+- `ios/AGENTS.md` — commands, patterns, conventions for the iOS app

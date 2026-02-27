@@ -1,109 +1,55 @@
 # PhotoPro
 
-PhotoPro is a photographer-focused astronomy app for planning shoots around sun, moon, weather, and special events.
+A photographer-focused astronomy app for planning shoots around sun, moon, weather, and celestial events. Available as a web app and a native iOS app.
 
-## Stack
-- React 19 + TypeScript 5.9 + Vite 7 + Bun
-- Tailwind CSS v4 + shadcn/ui
-- Zustand (persisted stores)
-- SunCalc + date-fns
+## Platforms
 
-## Main Features
-- Dashboard with sun/moon summary, upcoming events, and best weather days.
-- Live countdown for the next photography-relevant event.
-- Moon module: current phase, full moons, proximity opportunities, eclipses, special events.
-- Sun module: times, photography windows, eclipses.
-- Weather module: 7-day photo forecast with condition scoring, trends, and visual badges.
+| Platform | Stack | Directory |
+|----------|-------|-----------|
+| **Web** | React 19 + TypeScript + Vite + Tailwind + shadcn/ui | `web/` |
+| **iOS** | Swift 5.10 + SwiftUI (iOS 17+) | `ios/` |
 
-## Weather Scoring Rules
+## Features
 
-Weather scoring lives in `src/lib/weather/scoring.ts`.
+- **Sun & Golden Hour** — sunrise, sunset, golden/blue hour windows, sun position
+- **Moon Phases & Events** — current phase, full moon calendar, supermoons, blue/black moons
+- **Photo Opportunities** — moon/sun proximity events with azimuth and timing scoring
+- **Eclipse Tracking** — solar and lunar eclipses with location-based visibility
+- **Night Sky** — meteor showers with ZHR ratings, comet tracking
+- **Weather Forecast** — 7-day photo scoring (sunset and night profiles), trends
+- **Dashboard** — at-a-glance summary with countdown to next event
 
-### Sunset profile
-- `windScore` (ideal <= 9 km/h, max >= 14 km/h)
-- `highCloudScore` (best around ~55% high cloud)
-- `blockingCloudScore = 100 - max(lowCloud, midCloud)`
-- Final score:
-  - `0.4 * windScore + 0.3 * highCloudScore + 0.3 * blockingCloudScore`
+## Shared Algorithms
 
-### Night profile
-- `windScore` (ideal <= 8 km/h, max >= 12 km/h)
-- `clearSkyScore = 100 - cloud_cover`
-- `humidityScore` (ideal <= 65%, max >= 95%)
-- `moonScore = 100 - moonIllumination` (if available)
-- Final score:
-  - `0.3 * windScore + 0.4 * clearSkyScore + 0.15 * humidityScore + 0.15 * moonScore`
+Both platforms implement the same prediction and scoring logic, documented in [`ALGORITHM.md`](ALGORITHM.md). This is the single source of truth for:
 
-### Labels
-- `Excellent`: >= 85
-- `Good`: >= 70
-- `Fair`: >= 50
-- `Poor`: < 50
+- Weather photo scoring (sunset/night profiles, thresholds, weights)
+- Proximity finder (moon/sun alignment detection)
+- Next event countdown
+- Full moon detection, special events (supermoon, blue moon, black moon)
+- Visibility ratings (altitude-based)
+- Meteor shower and comet scoring
+- Eclipse visibility
 
-### Opportunity ranking
-- Astronomy score:
-  - `0.6 * azimuthAlignment + 0.4 * timingAlignment`
-- Combined score:
-  - `0.5 * astronomy + 0.5 * weather`
+## Data Sources
 
-### Trend indicator
-- Weather cards show 24h trend:
-  - `↗ improving`, `↘ getting worse`, or `→ steady`
-- Computed from score delta against the same profile/time 24h later.
-
-## Countdown Logic
-
-Countdown logic lives in:
-- `src/lib/astronomy/countdown.ts`
-- `src/hooks/useNextEvent.ts`
-
-Events considered:
-- Morning blue hour
-- Sunrise
-- Morning golden hour
-- Evening golden hour
-- Sunset
-- Evening blue hour
-- Moonrise (if available)
-- Moonset (if available)
-
-The countdown updates every 30s and appears in "Best Days This Week" on Home.
-
-## Data + Caching
-- Weather source: Open-Meteo hourly forecast (`src/lib/weather/api.ts`)
-- Weather cache: localStorage (`src/lib/weather/cache.ts`)
-- Weather cache TTL: 3 hours (`src/stores/weather-store.ts`)
-
-## Location Behavior
-- GPS-first, manual fallback.
-- Manual/saved selection disables GPS mode to prevent overwrite.
-- Coordinate input accepts both comma and dot decimal separators.
+- **Astronomy**: SunCalc library (client-side calculations)
+- **Weather**: [Open-Meteo](https://open-meteo.com/) (free, no API key)
+- **Eclipses / Meteors / Comets / Supermoons**: Bundled JSON datasets
 
 ## Development
 
-### Install
+### Web
 ```bash
+cd web
 bun install
-```
-
-### Run
-```bash
 bun run dev
 ```
 
-### Build
-```bash
-bun run build
-```
+### iOS
+1. Open `ios/PhotoPro/PhotoPro.xcodeproj` in Xcode
+2. Build and run on simulator or device (iOS 17+)
 
-### Lint
-```bash
-bun run lint
-```
+## License
 
-## Project Structure
-- `src/features/` - route-level UI modules
-- `src/lib/astronomy/` - pure astronomy/calculation utilities
-- `src/lib/weather/` - weather API, cache, scoring
-- `src/stores/` - Zustand state (location, settings, weather)
-- `src/data/` - eclipse/supermoon datasets
+MIT

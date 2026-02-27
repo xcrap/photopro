@@ -1,4 +1,8 @@
-# Logs
+# Dependencies & build (web)
+node_modules
+dist
+dist-ssr
+*.local
 logs
 *.log
 npm-debug.log*
@@ -7,18 +11,34 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Xcode (iOS)
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+xcuserdata/
 
-# Editor directories and files
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# Editors
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*~
+
+# OS
+.DS_Store
+
+# AI
+.claude
