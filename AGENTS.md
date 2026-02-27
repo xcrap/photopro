@@ -7,7 +7,7 @@
 ```
 photopro/
 ├── web/             ← React 19 + Vite 7 + TypeScript 5.9 + Bun + Tailwind v4 + shadcn/ui
-├── ios/             ← Swift 5.10 + SwiftUI (iOS 17+) + Xcode 16+
+├── ios/             ← Swift 6 + SwiftUI (iOS 26+) + Xcode 26+
 ├── ALGORITHM.md     ← Canonical algorithm specification (shared between platforms)
 ├── AGENTS.md        ← This file
 └── README.md

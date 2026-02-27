@@ -3,7 +3,7 @@
 > **CLAUDE.md** is a symlink to this file.
 
 ## Tech Stack
-- Swift 5.10+ / SwiftUI (iOS 17+) / Xcode 16+
+- Swift 6 / SwiftUI (iOS 26+) / Xcode 26+
 - Timac/SunCalc — local fork at `SunCalc/` (precision fix: `π = Double.pi`)
 - `@Observable` + UserDefaults persistence
 - URLSession async/await (Open-Meteo weather API)

@@ -7,7 +7,7 @@ A photographer-focused astronomy app for planning shoots around sun, moon, weath
 | Platform | Stack | Directory |
 |----------|-------|-----------|
 | **Web** | React 19 + TypeScript + Vite + Tailwind + shadcn/ui | `web/` |
-| **iOS** | Swift 5.10 + SwiftUI (iOS 17+) | `ios/` |
+| **iOS** | Swift 6 + SwiftUI (iOS 26+) | `ios/` |
 
 ## Features
 
@@ -48,7 +48,7 @@ bun run dev
 
 ### iOS
 1. Open `ios/PhotoPro/PhotoPro.xcodeproj` in Xcode
-2. Build and run on simulator or device (iOS 17+)
+2. Build and run on simulator or device (iOS 26+)
 
 ## License
 
