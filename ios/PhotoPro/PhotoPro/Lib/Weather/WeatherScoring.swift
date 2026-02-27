@@ -245,9 +245,9 @@ enum WeatherScoring {
             .prefix(7)
             .map { $0 }
 
-        // Calculate trends by comparing to previous day
-        for i in 1..<sorted.count {
-            let delta = sorted[i].score - sorted[i - 1].score
+        // Calculate trends by comparing to next day (forward-looking, per ALGORITHM.md)
+        for i in 0..<(sorted.count - 1) {
+            let delta = sorted[i + 1].score - sorted[i].score
             if delta >= 10 {
                 sorted[i].trend = .improving
             } else if delta <= -10 {
