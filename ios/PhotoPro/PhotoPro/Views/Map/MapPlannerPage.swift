@@ -6,9 +6,9 @@ import Combine
 /// moon rise/set, the Sun and Moon now, and the solstice extremes, plus terrain first/last light.
 /// Double-tap or long-press the map, drag the pin, or search a place to move the location.
 struct MapPlannerPage: View {
-    /// Which body's rays and rows to show.
+    /// The body whose rays and rows are shown — one at a time, never mixed.
     enum Bodies: String, CaseIterable, Identifiable {
-        case both = "Sun & Moon", sun = "Sun", moon = "Moon"
+        case sun = "Sun", moon = "Moon"
         var id: String { rawValue }
     }
 
@@ -23,7 +23,7 @@ struct MapPlannerPage: View {
     @State private var dragCoordinate: CLLocationCoordinate2D?
     @State private var showImagery = false
     @State private var didCenter = false
-    @State private var bodies: Bodies = .both
+    @State private var bodies: Bodies = .sun
     @State private var search = PlaceSearchModel()
     @State private var searchPresented = false
 
@@ -45,7 +45,7 @@ struct MapPlannerPage: View {
         let events = PlannerRays.events(day: selectedDate, now: now, lat: pin.latitude, lon: pin.longitude, timeZone: timeZone)
         let sunEvents = events.filter { !$0.isMoon }
         let moonEvents = events.filter(\.isMoon)
-        let shown = bodies == .sun ? sunEvents : bodies == .moon ? moonEvents : events
+        let shown = bodies == .sun ? sunEvents : moonEvents
 
         GeometryReader { geo in
             VStack(spacing: 0) {
@@ -72,11 +72,9 @@ struct MapPlannerPage: View {
                         .pickerStyle(.segmented)
                         DateNavigator(selectedDate: $selectedDate)
                         locationHeader(timeZone: timeZone)
-                        if bodies != .moon {
-                            sunCard(events: sunEvents, timeZone: timeZone)
-                        }
-                        if bodies != .sun {
-                            moonCard(events: moonEvents, timeZone: timeZone)
+                        switch bodies {
+                        case .sun: sunCard(events: sunEvents, timeZone: timeZone)
+                        case .moon: moonCard(events: moonEvents, timeZone: timeZone)
                         }
                         Text("Terrain only: trees and buildings aren't in the elevation data.")
                             .font(.caption2)
@@ -89,7 +87,7 @@ struct MapPlannerPage: View {
             }
         }
         .background(Theme.background)
-        .navigationTitle("Sun & Moon Map")
+        .navigationTitle("Map")
         .toolbarTitleDisplayMode(.inline)
         .searchable(text: $search.query, isPresented: $searchPresented,
                     placement: .navigationBarDrawer(displayMode: .always), prompt: "Search places")

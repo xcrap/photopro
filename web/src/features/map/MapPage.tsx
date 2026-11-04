@@ -51,9 +51,9 @@ interface Ray {
   altitude?: number
 }
 
-type Bodies = 'both' | 'sun' | 'moon'
+/** The body whose rays and rows are shown — one at a time, never mixed. */
+type Bodies = 'sun' | 'moon'
 const BODY_OPTIONS: Array<{ value: Bodies; label: string }> = [
-  { value: 'both', label: 'Sun & Moon' },
   { value: 'sun', label: 'Sun' },
   { value: 'moon', label: 'Moon' },
 ]
@@ -174,7 +174,7 @@ export function MapPage() {
   const [ready, setReady] = useState(false)
   const [satellite, setSatellite] = useState(false)
   const [zoomTick, setZoomTick] = useState(0)
-  const [bodies, setBodies] = useState<Bodies>('both')
+  const [bodies, setBodies] = useState<Bodies>('sun')
   const { horizon, loading: horizonLoading } = useHorizon(latitude, longitude)
 
   const moveSpot = (lat: number, lng: number, placeName?: string | null, placeZone?: string | null) => {
@@ -308,7 +308,7 @@ export function MapPage() {
     if (!map || !ready) return
     const length = rayLength(map, latitude)
     const source = map.getSource('rays') as GeoJSONSource | undefined
-    const visible = rays.filter((ray) => bodies === 'both' || (bodies === 'moon') === isMoonRay(ray))
+    const visible = rays.filter((ray) => (bodies === 'moon') === isMoonRay(ray))
     source?.setData({
       type: 'FeatureCollection',
       features: visible.map((ray) => ({
@@ -369,7 +369,7 @@ export function MapPage() {
       <div className="animate-in-1">
         <SectionHeader
           title="Map"
-          description={name ? `Directions from ${name}` : 'Sun & moon directions'}
+          description={name ? `Directions from ${name}` : 'Directions from your spot'}
           icon={<MapIcon className="h-4 w-4" />}
           action={
             <DateNavigator
@@ -408,7 +408,7 @@ export function MapPage() {
             Satellite
           </button>
         </div>
-        <div role="group" aria-label="Show directions for" className="grid grid-cols-3 gap-1 rounded-xl bg-white/[0.04] p-1">
+        <div role="group" aria-label="Show directions for" className="grid grid-cols-2 gap-1 rounded-xl bg-white/[0.04] p-1">
           {BODY_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -429,7 +429,7 @@ export function MapPage() {
         </p>
       </div>
 
-      {bodies !== 'moon' && (
+      {bodies === 'sun' && (
         <section className="animate-in-3 space-y-3" aria-label="Sun directions">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sun/8">
@@ -445,8 +445,8 @@ export function MapPage() {
         </section>
       )}
 
-      {bodies !== 'sun' && (
-        <section className="animate-in-4 space-y-3" aria-label="Moon directions">
+      {bodies === 'moon' && (
+        <section className="animate-in-3 space-y-3" aria-label="Moon directions">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-moon/8">
               <Moon className="h-3.5 w-3.5 text-moon" aria-hidden="true" />
