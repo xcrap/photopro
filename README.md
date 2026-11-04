@@ -18,7 +18,7 @@ A photographer-focused astronomy app for planning shoots around sun, moon, weath
 - **Night Sky** — meteor showers with ZHR ratings, comet tracking
 - **Weather Forecast** — 7-day photo scoring (sunset and night profiles), trends
 - **Dashboard** — at-a-glance summary with countdown to next event
-- **Map planner** — sunrise/sunset, moonrise/moonset and solstice direction rays on a map, place search
+- **Map planner** — Sun or Moon view: rise/set directions, today's path across the sky and where it is now, drawn on a map; place search
 - **Real horizon** — when the sun and moon actually clear the surrounding terrain (open elevation data)
 
 ## Shared Algorithms

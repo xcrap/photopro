@@ -6,7 +6,6 @@ import SunCalc
 struct PlannerEvent: Identifiable, Sendable {
     enum Kind: String, Sendable {
         case sunrise, sunset, moonrise, moonset, sunNow, sunBelow, moonNow, moonBelow
-        case juneRise, juneSet, decemberRise, decemberSet
     }
 
     var kind: Kind
@@ -17,16 +16,14 @@ struct PlannerEvent: Identifiable, Sendable {
     var altitude: Double?
 
     var id: String { kind.rawValue }
-    var isSolstice: Bool { [.juneRise, .juneSet, .decemberRise, .decemberSet].contains(kind) }
     var isMoon: Bool { [.moonrise, .moonset, .moonNow, .moonBelow].contains(kind) }
-    /// Drawn dashed: solstice extremes and a body that is below the horizon now.
-    var isDashed: Bool { isSolstice || kind == .sunBelow || kind == .moonBelow }
+    /// Drawn dashed: a body that is below the horizon now.
+    var isDashed: Bool { kind == .sunBelow || kind == .moonBelow }
     var isNow: Bool { [.sunNow, .sunBelow, .moonNow, .moonBelow].contains(kind) }
 }
 
-/// Azimuth events for the map planner (ported from Waka Sun's overlay):
-/// the day's sunrise/sunset and moonrise/moonset, the Sun and Moon now (today only), and this
-/// year's June and December solstice sunrise/sunset.
+/// Azimuth events for the map planner: the day's sunrise/sunset and moonrise/moonset, and the
+/// Sun and Moon now (today only).
 enum PlannerRays {
     private static func azimuthFromNorth(_ radiansFromSouth: Double) -> Double {
         ((radiansFromSouth * 180 / .pi) + 180).truncatingRemainder(dividingBy: 360)
@@ -39,12 +36,6 @@ enum PlannerRays {
     static func moonPosition(at date: Date, lat: Double, lon: Double) -> (azimuth: Double, altitude: Double) {
         let pos = SunCalc.getMoonPosition(timeAndDate: date, latitude: lat, longitude: lon)
         return (azimuthFromNorth(pos.azimuth), pos.altitude * 180 / .pi)
-    }
-
-    /// The local date of this year's June (90°) or December (270°) solstice.
-    static func solstice(_ longitude: Double, year: Int) -> Date {
-        // findDateForSolarLongitude works on the true longitude; apparent = true − 0.00569°.
-        SolarLongitude.findDateForSolarLongitude(longitude + 0.00569, year: year)
     }
 
     static func events(day: Date, now: Date, lat: Double, lon: Double, timeZone: TimeZone) -> [PlannerEvent] {
@@ -75,24 +66,12 @@ enum PlannerRays {
             ))
             let moonNow = moonPosition(at: now, lat: lat, lon: lon)
             events.append(PlannerEvent(
-                kind: moonNow.altitude > 0 ? .moonNow : .moonBelow,
-                label: moonNow.altitude > 0 ? "Moon now" : "Moon now (below horizon)",
+                kind: moonNow.altitude > SkyPath.horizon(.moon) ? .moonNow : .moonBelow,
+                label: moonNow.altitude > SkyPath.horizon(.moon) ? "Moon now" : "Moon now (below horizon)",
                 time: now, azimuth: moonNow.azimuth, altitude: moonNow.altitude
             ))
         }
 
-        let year = AstroDateHelper.calendar(for: timeZone).component(.year, from: day)
-        for (longitude, riseKind, setKind, name) in [(90.0, PlannerEvent.Kind.juneRise, PlannerEvent.Kind.juneSet, "June"),
-                                                      (270.0, .decemberRise, .decemberSet, "December")] {
-            let solsticeDay = solstice(longitude, year: year)
-            let times = SunCalculator.getSunTimes(date: solsticeDay, lat: lat, lon: lon, timeZone: timeZone)
-            if let rise = times.sunrise {
-                events.append(PlannerEvent(kind: riseKind, label: "\(name) solstice sunrise", time: rise, azimuth: sunAzimuth(at: rise, lat: lat, lon: lon)))
-            }
-            if let set = times.sunset {
-                events.append(PlannerEvent(kind: setKind, label: "\(name) solstice sunset", time: set, azimuth: sunAzimuth(at: set, lat: lat, lon: lon)))
-            }
-        }
         return events
     }
 }

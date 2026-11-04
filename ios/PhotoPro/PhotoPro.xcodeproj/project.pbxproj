@@ -101,7 +101,7 @@
 			mainGroup = E378BD922F4BAE2D0059C49A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E378BE332F4BAEE10059C49A /* XCLocalSwiftPackageReference "SunCalc" */,
+				E378BE332F4BAEE10059C49A /* XCLocalSwiftPackageReference "../SunCalc" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E378BD9C2F4BAE2D0059C49A /* Products */;
@@ -339,7 +339,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		E378BE332F4BAEE10059C49A /* XCLocalSwiftPackageReference "SunCalc" */ = {
+		E378BE332F4BAEE10059C49A /* XCLocalSwiftPackageReference "../SunCalc" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../SunCalc;
 		};

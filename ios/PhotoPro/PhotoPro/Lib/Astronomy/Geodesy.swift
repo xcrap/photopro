@@ -22,12 +22,4 @@ enum Geodesy {
     static func bearingLine(from start: CLLocationCoordinate2D, bearing: Double, meters: Double, steps: Int = 24) -> [CLLocationCoordinate2D] {
         [start] + (1...max(1, steps)).map { destination(from: start, bearing: bearing, meters: meters * Double($0) / Double(steps)) }
     }
-
-    /// Ray length for a visible map region: 1.2 × the screen diagonal, clamped to 25–400 km.
-    static func rayLength(latitudeDelta: Double, longitudeDelta: Double, centerLatitude: Double) -> Double {
-        let metersPerDegree = earthRadius * .pi / 180
-        let height = latitudeDelta * metersPerDegree
-        let width = longitudeDelta * metersPerDegree * cos(centerLatitude * .pi / 180)
-        return max(25_000, min(400_000, hypot(width, height) * 1.2))
-    }
 }

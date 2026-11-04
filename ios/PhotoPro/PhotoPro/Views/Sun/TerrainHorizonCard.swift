@@ -10,8 +10,10 @@ enum PlannerColors {
     static let moonset = Color(red: 0.65, green: 0.55, blue: 0.98)   // #a78bfa
     static let moonNow = Color(red: 0.95, green: 0.96, blue: 0.98)   // #f1f5f9
     static let moonBelow = Color(red: 0.58, green: 0.64, blue: 0.72) // #94a3b8
-    static let june = Color(red: 0.88, green: 0.54, blue: 0.17)      // #e0892b
-    static let december = Color(red: 0.45, green: 0.62, blue: 0.85)  // #4f7fb3, lightened for dark map
+    static let sunPath = Color(red: 0.98, green: 0.80, blue: 0.08)   // #facc15
+    static let moonPath = Color(red: 0.66, green: 0.72, blue: 0.85)  // #a8b8d8
+    static let sunDisc = Color(red: 0.96, green: 0.62, blue: 0.04)   // #f59e0b
+    static let moonDisc = Color(red: 0.89, green: 0.91, blue: 0.94)  // #e2e8f0
 
     static func color(for kind: PlannerEvent.Kind) -> Color {
         switch kind {
@@ -23,8 +25,6 @@ enum PlannerColors {
         case .moonset: return moonset
         case .moonNow: return moonNow
         case .moonBelow: return moonBelow
-        case .juneRise, .juneSet: return june
-        case .decemberRise, .decemberSet: return december
         }
     }
 }

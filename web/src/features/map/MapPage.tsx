@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AttributionControl, Map as MapLibre, Marker, setWorkerUrl } from 'maplibre-gl'
 import type { ExpressionSpecification, GeoJSONSource } from 'maplibre-gl'
+import type { Feature } from 'geojson'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Layers, Map as MapIcon, Moon, Mountain, Sun } from 'lucide-react'
@@ -13,14 +14,14 @@ import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
-import { findDateForSolarLongitude } from '@/lib/astronomy/solar-longitude'
 import { bodyPosition, useHorizon } from '@/lib/terrain/horizon'
 import { TERRAIN_TILES } from '@/lib/terrain/terrain'
-import { bearingLine, compass, metersPerPixel } from '@/lib/geo/bearing'
-import { formatDateShort, formatTime } from '@/lib/formatting'
+import { bearingLine, compass, destination, metersPerPixel } from '@/lib/geo/bearing'
+import { skyDistance, skyPath, skyPosition } from '@/lib/geo/sky-path'
+import { addLocalDays } from '@/lib/time/zone'
+import { formatTime } from '@/lib/formatting'
 import { getPolarLabel } from '@/lib/astronomy/sun-calculator'
 import { cn } from '@/lib/utils'
-import { TZDate } from '@date-fns/tz'
 
 setWorkerUrl(workerUrl)
 
@@ -38,10 +39,6 @@ type RayKind =
   | 'moonset'
   | 'moon'
   | 'moon-below'
-  | 'summer-rise'
-  | 'summer-set'
-  | 'winter-rise'
-  | 'winter-set'
 
 interface Ray {
   kind: RayKind
@@ -60,7 +57,10 @@ const BODY_OPTIONS: Array<{ value: Bodies; label: string }> = [
 const MOON_KINDS: RayKind[] = ['moonrise', 'moonset', 'moon', 'moon-below']
 const isMoonRay = (ray: Ray) => MOON_KINDS.includes(ray.kind)
 const isNowRay = (ray: Ray) => ray.altitude !== undefined
-const isSolsticeRay = (ray: Ray) => ray.kind.startsWith('summer') || ray.kind.startsWith('winter')
+
+/** Today's path across the sky and the body's disc on it. */
+const PATH_COLOR = { sun: '#facc15', moon: '#a8b8d8' } as const
+const DISC_COLOR = { sun: '#f59e0b', moon: '#e2e8f0' } as const
 
 /** Two taps within this many ms and pixels count as a double tap (touch or mouse). */
 const DOUBLE_TAP_MS = 400
@@ -75,10 +75,6 @@ const RAY_STYLE: Record<RayKind, { color: string; label: string; dashed?: boolea
   moonset: { color: '#a78bfa', label: 'Moonset' },
   moon: { color: '#f1f5f9', label: 'Moon now' },
   'moon-below': { color: '#94a3b8', label: 'Moon now (below horizon)', dashed: true },
-  'summer-rise': { color: '#e0892b', label: 'June solstice sunrise', dashed: true },
-  'summer-set': { color: '#e0892b', label: 'June solstice sunset', dashed: true },
-  'winter-rise': { color: '#5b8fd0', label: 'December solstice sunrise', dashed: true },
-  'winter-set': { color: '#5b8fd0', label: 'December solstice sunset', dashed: true },
 }
 
 const kindExpr: ExpressionSpecification = ['get', 'kind']
@@ -91,6 +87,9 @@ const colorExpr = [
 const dashedKinds = Object.entries(RAY_STYLE)
   .filter(([, style]) => style.dashed)
   .map(([kind]) => kind)
+const isRole = (role: 'ray' | 'path' | 'disc'): ExpressionSpecification => ['==', ['get', 'role'], role]
+const solidRay: ExpressionSpecification = ['all', isRole('ray'), ['!', ['in', kindExpr, ['literal', dashedKinds]]]]
+const dashedRay: ExpressionSpecification = ['all', isRole('ray'), ['in', kindExpr, ['literal', dashedKinds]]]
 
 function addLayers(map: MapLibre) {
   const firstSymbol = map.getStyle().layers.find((layer) => layer.type === 'symbol')?.id
@@ -127,10 +126,18 @@ function addLayers(map: MapLibre) {
 
   map.addSource('rays', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
   map.addLayer({
+    id: 'sky-path',
+    type: 'line',
+    source: 'rays',
+    filter: isRole('path'),
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': ['get', 'color'], 'line-width': 3, 'line-opacity': 0.9 },
+  })
+  map.addLayer({
     id: 'rays-casing',
     type: 'line',
     source: 'rays',
-    filter: ['!', ['in', kindExpr, ['literal', dashedKinds]]],
+    filter: solidRay,
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': '#05060c', 'line-width': 6, 'line-opacity': 0.8 },
   })
@@ -138,7 +145,7 @@ function addLayers(map: MapLibre) {
     id: 'rays',
     type: 'line',
     source: 'rays',
-    filter: ['!', ['in', kindExpr, ['literal', dashedKinds]]],
+    filter: solidRay,
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': colorExpr, 'line-width': 3.2 },
   })
@@ -146,15 +153,28 @@ function addLayers(map: MapLibre) {
     id: 'rays-dashed',
     type: 'line',
     source: 'rays',
-    filter: ['in', kindExpr, ['literal', dashedKinds]],
+    filter: dashedRay,
     paint: { 'line-color': colorExpr, 'line-width': 2, 'line-dasharray': [2, 2], 'line-opacity': 0.9 },
+  })
+  map.addLayer({
+    id: 'sky-disc',
+    type: 'circle',
+    source: 'rays',
+    filter: ['all', isRole('disc'), ['==', ['geometry-type'], 'Point']],
+    paint: {
+      'circle-radius': 10,
+      'circle-color': ['get', 'color'],
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 2,
+      'circle-stroke-opacity': 0.85,
+    },
   })
 }
 
-function rayLength(map: MapLibre, lat: number): number {
+/** Radius of the sky drawing (the horizon) in metres: a fixed share of the map's smaller side. */
+function skyRadius(map: MapLibre, lat: number): number {
   const canvas = map.getCanvas()
-  const diagonal = Math.hypot(canvas.clientWidth, canvas.clientHeight)
-  return Math.max(2_000, Math.min(400_000, diagonal * 0.6 * metersPerPixel(lat, map.getZoom())))
+  return 0.42 * Math.min(canvas.clientWidth, canvas.clientHeight) * metersPerPixel(lat, map.getZoom())
 }
 
 export function MapPage() {
@@ -205,7 +225,7 @@ export function MapPage() {
     mapRef.current = map
 
     const pinElement = document.createElement('div')
-    pinElement.className = 'h-4 w-4 rounded-full border-2 border-white bg-proximity shadow-[0_0_0_4px_rgba(0,0,0,0.35)]'
+    pinElement.className = 'h-5 w-5 rounded-full border-[3px] border-red-500 shadow-[0_0_0_2px_rgba(255,255,255,0.7)]'
     pinElement.setAttribute('aria-label', 'Selected spot')
     const pin = new Marker({ element: pinElement, draggable: true }).setLngLat([longitude, latitude]).addTo(map)
     pin.on('dragend', () => {
@@ -281,49 +301,64 @@ export function MapPage() {
     if (sunTimes.sunset) out.push(ray('sunset', 'sun', sunTimes.sunset))
     if (isToday) {
       const sun = bodyPosition('sun', selectedDate, latitude, longitude)
-      out.push({ kind: sun.altitude > -0.833 ? 'sun' : 'sun-below', time: selectedDate, ...sun })
-    }
-    const year = new TZDate(selectedDayStart.getTime(), timeZone).getFullYear()
-    for (const [season, longitudeDeg] of [['summer', 90], ['winter', 270]] as const) {
-      const day = findDateForSolarLongitude(longitudeDeg, year)
-      const times = getSunTimes(day, latitude, longitude, timeZone)
-      if (times.sunrise) out.push(ray(`${season}-rise`, 'sun', times.sunrise))
-      if (times.sunset) out.push(ray(`${season}-set`, 'sun', times.sunset))
+      const up = skyPosition('sun', selectedDate, latitude, longitude).up
+      out.push({ kind: up ? 'sun' : 'sun-below', time: selectedDate, ...sun })
     }
     if (moonData.moonrise) out.push(ray('moonrise', 'moon', moonData.moonrise))
     if (moonData.moonset) out.push(ray('moonset', 'moon', moonData.moonset))
     if (isToday) {
       const moon = bodyPosition('moon', selectedDate, latitude, longitude)
-      out.push({ kind: moon.altitude > 0 ? 'moon' : 'moon-below', time: selectedDate, ...moon })
+      const up = skyPosition('moon', selectedDate, latitude, longitude).up
+      out.push({ kind: up ? 'moon' : 'moon-below', time: selectedDate, ...moon })
     }
     return out
-  }, [sunTimes, moonData, isToday, selectedDate, selectedDayStart, latitude, longitude, timeZone])
+  }, [sunTimes, moonData, isToday, selectedDate, latitude, longitude])
+
+  // The shown body's path across the sky over the selected local day.
+  const path = useMemo(
+    () => skyPath(bodies, selectedDayStart, addLocalDays(selectedDayStart, 1, timeZone), latitude, longitude),
+    [bodies, selectedDayStart, timeZone, latitude, longitude],
+  )
 
   const sunRays = rays.filter((ray) => !isMoonRay(ray))
   const moonRays = rays.filter(isMoonRay)
 
-  // Draw the rays; their length follows the zoom level.
+  // Draw the sky seen from above: the horizon is a circle around the spot (its radius follows
+  // the zoom), a point at altitude h sits at radius × cos h. Rise/set lines end on the horizon;
+  // the "now" line ends at the body's disc on today's path.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
-    const length = rayLength(map, latitude)
-    const source = map.getSource('rays') as GeoJSONSource | undefined
-    const visible = rays.filter((ray) => (bodies === 'moon') === isMoonRay(ray))
-    source?.setData({
-      type: 'FeatureCollection',
-      features: visible.map((ray) => ({
+    const radius = skyRadius(map, latitude)
+    const at = (azimuth: number, altitude: number) => destination(latitude, longitude, azimuth, skyDistance(altitude, radius))
+    const features: Feature[] = path.map((run) => ({
+      type: 'Feature',
+      properties: { role: 'path', color: PATH_COLOR[bodies] },
+      geometry: { type: 'LineString', coordinates: run.map((point) => at(point.azimuth, point.altitude)) },
+    }))
+    for (const ray of rays.filter((r) => (bodies === 'moon') === isMoonRay(r))) {
+      let length = radius
+      if (ray.kind === 'sun' || ray.kind === 'moon') {
+        const sky = skyPosition(bodies, ray.time, latitude, longitude)
+        length = skyDistance(sky.altitude, radius)
+        features.push({
+          type: 'Feature',
+          properties: { role: 'disc', color: DISC_COLOR[bodies] },
+          geometry: { type: 'Point', coordinates: at(sky.azimuth, sky.altitude) },
+        })
+      }
+      features.push({
         type: 'Feature',
-        properties: { kind: ray.kind },
+        properties: { role: 'ray', kind: ray.kind },
         geometry: { type: 'LineString', coordinates: bearingLine(latitude, longitude, ray.azimuth, length) },
-      })),
-    })
-  }, [rays, bodies, ready, latitude, longitude, zoomTick])
+      })
+    }
+    const source = map.getSource('rays') as GeoJSONSource | undefined
+    source?.setData({ type: 'FeatureCollection', features })
+  }, [rays, path, bodies, ready, latitude, longitude, zoomTick])
 
-  const detail = (ray: Ray) => {
-    if (isNowRay(ray)) return `Altitude ${ray.altitude!.toFixed(1)}°`
-    if (isSolsticeRay(ray)) return `${formatDateShort(ray.time, timeZone)}, ${formatTime(ray.time, timeFormat, timeZone)}`
-    return formatTime(ray.time, timeFormat, timeZone)
-  }
+  const detail = (ray: Ray) =>
+    isNowRay(ray) ? `Altitude ${ray.altitude!.toFixed(1)}°` : formatTime(ray.time, timeFormat, timeZone)
 
   const rayRows = (list: Ray[]) =>
     list.map((ray) => (

@@ -33,12 +33,14 @@ struct MapPlannerPage: View {
         dragCoordinate ?? CLLocationCoordinate2D(latitude: locationStore.latitude, longitude: locationStore.longitude)
     }
 
-    private var rayLength: Double {
-        guard let region = visibleRegion else { return 60_000 }
-        return Geodesy.rayLength(latitudeDelta: region.span.latitudeDelta,
-                                 longitudeDelta: region.span.longitudeDelta,
-                                 centerLatitude: region.center.latitude)
+    /// Radius of the sky drawing (the horizon) in metres: a fixed share of the map's smaller side.
+    private func skyRadius(mapSize: CGSize) -> Double {
+        guard let region = visibleRegion, mapSize.height > 0 else { return 5_000 }
+        let metersPerPoint = region.span.latitudeDelta * Geodesy.earthRadius * .pi / 180 / mapSize.height
+        return 0.42 * min(mapSize.width, mapSize.height) * metersPerPoint
     }
+
+    private var skyBody: SkyPath.Body { bodies == .sun ? .sun : .moon }
 
     var body: some View {
         let timeZone = locationStore.timeZone
@@ -48,9 +50,10 @@ struct MapPlannerPage: View {
         let shown = bodies == .sun ? sunEvents : moonEvents
 
         GeometryReader { geo in
+            let mapSize = CGSize(width: geo.size.width, height: max(280, geo.size.height * 0.52))
             VStack(spacing: 0) {
-                map(events: shown)
-                    .frame(height: max(280, geo.size.height * 0.52))
+                map(events: shown, size: mapSize, timeZone: timeZone)
+                    .frame(height: mapSize.height)
                     .overlay(alignment: .bottomTrailing) {
                         Button {
                             recenter()
@@ -141,11 +144,36 @@ struct MapPlannerPage: View {
 
     // MARK: - Map
 
-    private func map(events: [PlannerEvent]) -> some View {
-        MapReader { proxy in
+    /// The sky seen from above: the horizon is a circle around the pin (its radius follows the
+    /// zoom) and a point at altitude h sits at radius × cos h. Rise/set lines end on the horizon;
+    /// the "now" line ends at the body's disc on today's path.
+    private func map(events: [PlannerEvent], size: CGSize, timeZone: TimeZone) -> some View {
+        let radius = skyRadius(mapSize: size)
+        let body = skyBody
+        let calendar = AstroDateHelper.calendar(for: timeZone)
+        let dayStart = calendar.startOfDay(for: selectedDate)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart.addingTimeInterval(86_400)
+        let runs = SkyPath.runs(body, from: dayStart, to: dayEnd, lat: pin.latitude, lon: pin.longitude)
+        let disc = events.first(where: { $0.kind == .sunNow || $0.kind == .moonNow })
+            .flatMap { $0.time }
+            .map { SkyPath.position(body, at: $0, lat: pin.latitude, lon: pin.longitude).point }
+        let sky = { (point: SkyPath.Point) in
+            Geodesy.destination(from: pin, bearing: point.azimuth, meters: SkyPath.distance(altitude: point.altitude, radius: radius))
+        }
+
+        return MapReader { proxy in
             Map(position: $position) {
+                ForEach(Array(runs.enumerated()), id: \.offset) { _, run in
+                    MapPolyline(coordinates: run.map(sky))
+                        .stroke((body == .sun ? PlannerColors.sunPath : PlannerColors.moonPath).opacity(0.9),
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                }
+
                 ForEach(events) { event in
-                    let line = Geodesy.bearingLine(from: pin, bearing: event.azimuth, meters: rayLength)
+                    let length = (event.kind == .sunNow || event.kind == .moonNow) && disc != nil
+                        ? SkyPath.distance(altitude: disc!.altitude, radius: radius)
+                        : radius
+                    let line = Geodesy.bearingLine(from: pin, bearing: event.azimuth, meters: length)
                     let color = PlannerColors.color(for: event.kind)
                     if event.isDashed {
                         MapPolyline(coordinates: line)
@@ -156,6 +184,17 @@ struct MapPlannerPage: View {
                         MapPolyline(coordinates: line)
                             .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     }
+                }
+
+                if let disc {
+                    Annotation(body == .sun ? "Sun" : "Moon", coordinate: sky(disc), anchor: .center) {
+                        Circle()
+                            .fill(body == .sun ? PlannerColors.sunDisc : PlannerColors.moonDisc)
+                            .frame(width: 22, height: 22)
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.85), lineWidth: 2))
+                            .allowsHitTesting(false)
+                    }
+                    .annotationTitles(.hidden)
                 }
 
                 Annotation("Selected location", coordinate: pin, anchor: .center) {
@@ -211,15 +250,16 @@ struct MapPlannerPage: View {
     }
 
     private var pinView: some View {
+        // A red ring, so the spot never looks like the sun or moon disc.
         ZStack {
             Circle()
-                .fill(Theme.sunAccent.opacity(0.25))
-                .frame(width: 34, height: 34)
+                .strokeBorder(Color.white.opacity(0.7), lineWidth: 2)
+                .frame(width: 24, height: 24)
             Circle()
-                .fill(Theme.sunAccent)
-                .frame(width: 16, height: 16)
-                .overlay(Circle().strokeBorder(Color.black.opacity(0.7), lineWidth: 2))
+                .strokeBorder(Color(red: 0.94, green: 0.27, blue: 0.27), lineWidth: 3)
+                .frame(width: 20, height: 20)
         }
+        .frame(width: 40, height: 40)
         .contentShape(Circle())
         .accessibilityLabel("Location pin")
         .accessibilityHint("Drag to move the location")
@@ -311,8 +351,6 @@ struct MapPlannerPage: View {
         let detail: String
         if event.isNow {
             detail = String(format: "Altitude %.1f°", event.altitude ?? 0)
-        } else if event.isSolstice, let time = event.time {
-            detail = "\(Formatting.formatDateShort(time, timeZone: timeZone)), \(Formatting.formatTime(time, format: settingsStore.timeFormat, timeZone: timeZone))"
         } else {
             detail = Formatting.formatTime(event.time, format: settingsStore.timeFormat, timeZone: timeZone)
         }
