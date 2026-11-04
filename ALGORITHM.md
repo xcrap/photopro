@@ -107,12 +107,18 @@ The night profile **always** includes the moon sub-score. If a caller doesn't pa
 
 ### Daily photo score
 
-- Group hourly points by calendar day in the location time zone.
-- Candidate hours, in location-local time:
-  - **Sunset profile:** 16:00–22:00 inclusive.
-  - **Night profile:** 23:00 and 00:00–04:00.
-- Daily score = the highest-scoring candidate. Keep its hour as the observation time.
-- Show at most 7 days.
+Each local date D in the forecast is scored from the **real sun times of D**, as computed by the Sun Times rules with the forecast's coordinates and the location time zone. Hours after midnight belong to the *previous* evening's night ("tonight").
+
+| Profile | Candidate hours (forecast points `h`) | When absent |
+|---------|----------------------------------------|-------------|
+| **Sunset** | `sunset(D) − 90 min ≤ h ≤ sunset(D) + 60 min` | No sunset that day (polar) → no sunset candidates |
+| **Night** | `dusk(D) ≤ h < dawn(D + 1)` (civil twilight, sun at −6°) | `dusk(D)` absent: if the Sun at solar noon is below −6° (deep polar night), start at 18:00 D local; otherwise (white night) there are no night candidates. `dawn(D + 1)` absent: end at 06:00 D+1 local |
+
+- Skip candidate hours that are already in the past (before the start of the current hour).
+- Also evaluate the date *before* the first forecast date. That way the rest of tonight is scored when the forecast starts after midnight.
+- Daily score = the highest-scoring candidate. Keep its hour as the observation time and its profile.
+- A date with no remaining candidates is omitted.
+- Show at most 7 days, in date order.
 
 ### Trend indicator
 

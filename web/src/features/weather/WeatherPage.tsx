@@ -201,20 +201,20 @@ export function WeatherPage() {
         })}
 
         {!isLoading && dailyScores.length === 0 && (
-          <div className="surface px-4 py-10 text-center text-sm text-muted-foreground/70">
+          <div className="surface px-4 py-10 text-center text-sm text-muted-foreground">
             Forecast unavailable for this location.
           </div>
         )}
 
         {isLoading && dailyScores.length === 0 && (
-          <div className="surface px-4 py-10 text-center text-sm text-muted-foreground/70">
+          <div className="surface px-4 py-10 text-center text-sm text-muted-foreground">
             Loading forecast...
           </div>
         )}
       </div>
 
       {lastUpdated && (
-        <p className="text-xs text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground">
           Updated {format(new Date(lastUpdated), timeFormat === '12h' ? 'MMM d, h:mm a' : 'MMM d, HH:mm')}
         </p>
       )}

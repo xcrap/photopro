@@ -45,14 +45,14 @@ struct MoonFullMoonsTab: View {
                         if let distance = moon.distance {
                             Text(Formatting.formatDistance(distance))
                                 .font(.caption2)
-                                .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                                .foregroundStyle(Theme.mutedForeground)
                         }
                     }
 
                     Spacer()
 
                     if let score = weatherStore.getScoreForTime(weatherTime(for: moon), profile: .night) {
-                        WeatherBadge(score: score.score, compact: true)
+                        WeatherBadge(conditions: score, compact: true)
                     }
 
                     Text(Formatting.formatDaysUntil(moon.date, timeZone: timeZone))

@@ -117,7 +117,7 @@ struct DayScoreCard: View {
                         .font(.caption.weight(.semibold))
                     Text("\(day.score)/100")
                         .font(.caption2.weight(.medium).monospacedDigit())
-                        .foregroundStyle(accentColor.opacity(0.7))
+                        .foregroundStyle(accentColor)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -158,7 +158,7 @@ struct DayScoreCard: View {
                      ? "Scored for sunset: wind + high cloud color + low/mid cloud blocking."
                      : "Scored for night: clear sky + low wind + humidity + moon darkness.")
                     .font(.caption2)
-                    .foregroundStyle(Theme.foreground.opacity(0.45))
+                    .foregroundStyle(Theme.foreground.opacity(0.65))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -243,7 +243,7 @@ struct IconMetric: View {
 
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(Theme.foreground.opacity(0.5))
+                .foregroundStyle(Theme.foreground.opacity(0.65))
                 .textCase(.uppercase)
                 .tracking(0.4)
 

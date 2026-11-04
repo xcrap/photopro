@@ -56,16 +56,15 @@ export const useWeatherStore = create<WeatherStore>()((set, get) => ({
     const cached = force ? null : getCachedForecast(latitude, longitude, CACHE_TTL_MS)
     if (cached) {
       learnTimeZone(latitude, longitude, cached)
-      if (get().forecastKey !== requestKey || get().lastUpdated !== cached.fetchedAt) {
-        set({
-          forecast: cached,
-          forecastKey: requestKey,
-          dailyScores: buildDailyPhotoScores(cached),
-          isLoading: false,
-          lastUpdated: cached.fetchedAt,
-          error: null,
-        })
-      }
+      // Recompute even for the same forecast: candidate hours that have passed drop off.
+      set({
+        forecast: cached,
+        forecastKey: requestKey,
+        dailyScores: buildDailyPhotoScores(cached),
+        isLoading: false,
+        lastUpdated: cached.fetchedAt,
+        error: null,
+      })
       return
     }
 

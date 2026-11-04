@@ -69,10 +69,17 @@ struct ScoredConditions: Sendable {
     var moonScore: Int
     var rating: String
     var summary: String
+    /// Sub-scores in display order (e.g. "Wind", "High clouds", "Low/mid clear").
+    var breakdown: [ScoreComponent]
     // Raw weather values for display
     var windSpeed: Double
     var cloudCover: Int
     var humidity: Int
+}
+
+struct ScoreComponent: Hashable, Sendable {
+    var label: String
+    var value: Int
 }
 
 struct DailyPhotoScore: Identifiable, Sendable {

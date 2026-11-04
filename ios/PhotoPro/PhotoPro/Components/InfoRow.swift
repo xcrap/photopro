@@ -24,7 +24,7 @@ struct InfoRow: View {
                     if let sublabel {
                         Text(sublabel)
                             .font(.caption2)
-                            .foregroundStyle(Theme.mutedForeground.opacity(0.4))
+                            .foregroundStyle(Theme.mutedForeground)
                     }
                 }
             }

@@ -28,7 +28,7 @@ struct NightCometsTab: View {
                         .foregroundStyle(Theme.mutedForeground)
                     Text("Major comets are rare (a few per decade).\nCheck back when one is discovered!")
                         .font(.caption)
-                        .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                        .foregroundStyle(Theme.mutedForeground)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -103,7 +103,7 @@ struct NightCometsTab: View {
 
             // Row 4: Weather badge
             if let score = weatherScore {
-                WeatherBadge(score: score.score)
+                WeatherBadge(conditions: score)
             }
         }
         .surfaceCard(accent: Theme.cometAccent)

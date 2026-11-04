@@ -37,7 +37,7 @@ export function DateNavigator({ date, timeZone, isToday, onPrevious, onNext, onT
 
       <button
         onClick={onPrevious}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
         aria-label="Previous day"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
@@ -69,7 +69,7 @@ export function DateNavigator({ date, timeZone, isToday, onPrevious, onNext, onT
 
       <button
         onClick={onNext}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
         aria-label="Next day"
       >
         <ChevronRight className="h-3.5 w-3.5" />

@@ -100,6 +100,11 @@ enum WeatherScoring {
                 moonScore: 0,
                 rating: getScoreLabel(score),
                 summary: summarizeSunset(windScore: windScore, highCloudScore: highCloudScore, blockingCloudScore: blockingCloudScore),
+                breakdown: [
+                    ScoreComponent(label: "Wind", value: windScore),
+                    ScoreComponent(label: "High clouds", value: highCloudScore),
+                    ScoreComponent(label: "Low/mid clear", value: blockingCloudScore),
+                ],
                 windSpeed: weather.windSpeed,
                 cloudCover: weather.cloudCover,
                 humidity: weather.humidity
@@ -115,6 +120,12 @@ enum WeatherScoring {
                 moonScore: moonScore,
                 rating: getScoreLabel(score),
                 summary: summarizeNight(clearSkyScore: clearSkyScore, windScore: windScore, humidityScore: humidityScore),
+                breakdown: [
+                    ScoreComponent(label: "Clear sky", value: clearSkyScore),
+                    ScoreComponent(label: "Wind", value: windScore),
+                    ScoreComponent(label: "Humidity", value: humidityScore),
+                    ScoreComponent(label: "Moon darkness", value: moonScore),
+                ],
                 windSpeed: weather.windSpeed,
                 cloudCover: weather.cloudCover,
                 humidity: weather.humidity
@@ -149,40 +160,83 @@ enum WeatherScoring {
 
     // MARK: - Daily Photo Scores
 
-    /// Candidate profile for a location-local hour: sunset 16:00–22:00, night 23:00 and 00:00–04:00.
-    static func candidateProfile(forLocalHour hour: Int) -> WeatherProfile? {
-        if (16...22).contains(hour) { return .sunset }
-        if hour == 23 || (0...4).contains(hour) { return .night }
-        return nil
+    /// Candidate windows for local date `day` (ALGORITHM.md → "Daily photo score"), from the real
+    /// sun times of that date at the forecast's coordinates in the location time zone.
+    /// - Sunset: `sunset − 90 min ≤ h ≤ sunset + 60 min` (none without a sunset).
+    /// - Night: `dusk(D) ≤ h < dawn(D + 1)`. Without dusk: 18:00 if the noon sun is below −6°
+    ///   (deep polar night), otherwise none (white night). Without dawn(D + 1): until 06:00 D + 1.
+    static func candidateWindows(
+        day: Date, latitude: Double, longitude: Double, timeZone: TimeZone
+    ) -> (sunset: ClosedRange<Date>?, night: Range<Date>?) {
+        let calendar = AstroDateHelper.calendar(for: timeZone)
+        let dayStart = AstroDateHelper.localMidnight(for: day, in: timeZone)
+        let nextDay = AstroDateHelper.addDays(1, to: dayStart, in: timeZone)
+
+        let today = SunCalculator.getSunTimes(date: dayStart, lat: latitude, lon: longitude, timeZone: timeZone)
+        let tomorrow = SunCalculator.getSunTimes(date: nextDay, lat: latitude, lon: longitude, timeZone: timeZone)
+
+        let sunsetWindow = today.sunset.map {
+            $0.addingTimeInterval(-90 * 60)...$0.addingTimeInterval(60 * 60)
+        }
+
+        let nightStart: Date?
+        if let dusk = today.dusk {
+            nightStart = dusk
+        } else {
+            let noon = today.solarNoon ?? AstroDateHelper.localNoon(for: dayStart, in: timeZone)
+            let noonAltitude = SunCalculator.getSunPosition(date: noon, lat: latitude, lon: longitude).altitude
+            nightStart = noonAltitude < -6
+                ? calendar.date(bySettingHour: 18, minute: 0, second: 0, of: dayStart)
+                : nil
+        }
+        let nightEnd = tomorrow.dawn ?? calendar.date(bySettingHour: 6, minute: 0, second: 0, of: nextDay)
+
+        var nightWindow: Range<Date>?
+        if let nightStart, let nightEnd, nightStart < nightEnd {
+            nightWindow = nightStart..<nightEnd
+        }
+        return (sunsetWindow, nightWindow)
     }
 
-    /// Best candidate per location-local day (at most 7), with the 24 h trend
+    /// Best candidate per local date (at most 7, in date order), with the 24 h trend
     /// (same profile at observation time + 24 h; ALGORITHM.md → "Daily photo score" / "Trend indicator").
-    static func buildDailyPhotoScores(_ forecast: WeatherForecast) -> [DailyPhotoScore] {
+    /// Hours after midnight count for the previous evening's night. Candidate hours before the start
+    /// of the current hour are skipped, and dates left without candidates are omitted.
+    static func buildDailyPhotoScores(_ forecast: WeatherForecast, now: Date = Date()) -> [DailyPhotoScore] {
         let timeZone = forecast.timeZone
         let calendar = AstroDateHelper.calendar(for: timeZone)
+        let points = forecast.points.sorted { $0.time < $1.time }
+        guard !points.isEmpty else { return [] }
 
-        // Group hours by local day, keeping chronological order.
-        var dayKeys: [String] = []
-        var byDay: [String: [HourlyWeather]] = [:]
-        for point in forecast.points.sorted(by: { $0.time < $1.time }) {
-            let dayKey = Formatting.string(from: point.time, pattern: "yyyy-MM-dd", timeZone: timeZone)
-            if byDay[dayKey] == nil { dayKeys.append(dayKey) }
-            byDay[dayKey, default: []].append(point)
+        let currentHourStart = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+
+        // Every local date that appears in the forecast.
+        var days: [Date] = []
+        for point in points {
+            let dayStart = AstroDateHelper.localMidnight(for: point.time, in: timeZone)
+            if days.last != dayStart { days.append(dayStart) }
+        }
+        // Hours before dawn on the first date belong to the previous evening's night ("tonight").
+        if let first = days.first, let previous = calendar.date(byAdding: .day, value: -1, to: first) {
+            days.insert(AstroDateHelper.localMidnight(for: previous, in: timeZone), at: 0)
         }
 
         var results: [DailyPhotoScore] = []
 
-        for dayKey in dayKeys.sorted().prefix(7) {
-            guard let points = byDay[dayKey], let first = points.first else { continue }
+        for day in days {
+            guard results.count < 7 else { break }
 
-            var candidates: [(profile: WeatherProfile, weather: HourlyWeather)] = points.compactMap { point in
-                let hour = calendar.component(.hour, from: point.time)
-                return candidateProfile(forLocalHour: hour).map { ($0, point) }
+            let windows = candidateWindows(day: day, latitude: forecast.latitude, longitude: forecast.longitude, timeZone: timeZone)
+            var candidates: [(profile: WeatherProfile, weather: HourlyWeather)] = []
+            for point in points where point.time >= currentHourStart {
+                if let sunset = windows.sunset, sunset.contains(point.time) {
+                    candidates.append((.sunset, point))
+                }
+                if let night = windows.night, night.contains(point.time) {
+                    candidates.append((.night, point))
+                }
             }
-            if candidates.isEmpty {
-                candidates = [(.sunset, first)]
-            }
+            guard !candidates.isEmpty else { continue }
 
             var best: (profile: WeatherProfile, weather: HourlyWeather, scored: ScoredConditions)?
             for candidate in candidates {
@@ -209,8 +263,8 @@ enum WeatherScoring {
             }
 
             results.append(DailyPhotoScore(
-                date: dayKey,
-                displayDate: first.time,
+                date: Formatting.string(from: day, pattern: "yyyy-MM-dd", timeZone: timeZone),
+                displayDate: day,
                 bestTime: best.weather.time,
                 bestProfile: best.profile,
                 score: best.scored.score,

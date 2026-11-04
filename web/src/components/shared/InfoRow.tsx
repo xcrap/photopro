@@ -20,7 +20,7 @@ export function InfoRow({ icon, label, value, sublabel, className = '' }: InfoRo
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
           {sublabel && (
-            <p className="text-xs text-muted-foreground/40">{sublabel}</p>
+            <p className="text-xs text-muted-foreground">{sublabel}</p>
           )}
         </div>
       </div>

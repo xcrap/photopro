@@ -57,7 +57,7 @@ struct MoonOpportunitiesTab: View {
                         .foregroundStyle(Theme.mutedForeground)
                     Text("Moon and sun rise/set events within 30 min and 30° will appear here")
                         .font(.caption)
-                        .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                        .foregroundStyle(Theme.mutedForeground)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -122,9 +122,9 @@ struct MoonOpportunitiesTab: View {
             // Row 3: Stats
             HStack(spacing: 0) {
                 Text(String(format: "%.1f° apart", event.azimuthDiff))
-                Text("  |  ").foregroundStyle(.white.opacity(0.1))
+                Text("  |  ").foregroundStyle(.white.opacity(0.1)).accessibilityHidden(true)
                 Text("\(Int(event.timeDiffMinutes.rounded())) min gap")
-                Text("  |  ").foregroundStyle(.white.opacity(0.1))
+                Text("  |  ").foregroundStyle(.white.opacity(0.1)).accessibilityHidden(true)
                 Text("\(Int(event.moonIllumination.rounded()))% lit")
             }
             .font(.caption.monospacedDigit())
@@ -133,8 +133,8 @@ struct MoonOpportunitiesTab: View {
             // Row 4: Context line
             HStack(spacing: 0) {
                 Text(event.timingDescription)
-                    .foregroundStyle(Theme.mutedForeground.opacity(0.6))
-                Text("  ·  ").foregroundStyle(Theme.mutedForeground.opacity(0.3))
+                    .foregroundStyle(Theme.mutedForeground)
+                Text("  ·  ").foregroundStyle(Theme.mutedForeground.opacity(0.3)).accessibilityHidden(true)
                 Text(event.quality.label)
                     .foregroundStyle(qualityColor(event.quality))
             }
@@ -150,7 +150,7 @@ struct MoonOpportunitiesTab: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                .foregroundStyle(Theme.mutedForeground)
             Text(Formatting.formatTime(time, format: settingsStore.timeFormat, timeZone: locationStore.timeZone))
                 .font(.title3.weight(.semibold).monospacedDigit())
                 .foregroundStyle(Theme.foreground)

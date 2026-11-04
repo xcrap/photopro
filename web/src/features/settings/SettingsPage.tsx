@@ -224,7 +224,7 @@ export function SettingsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium">Use GPS</p>
-                <p className="text-xs text-muted-foreground/60">Auto-detect location</p>
+                <p className="text-xs text-muted-foreground">Auto-detect location</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -237,7 +237,7 @@ export function SettingsPage() {
 
           {/* Current Location */}
           <div className="rounded-xl bg-white/[0.03] p-3.5">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Current</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Current</p>
             <p className="mt-1 text-sm font-medium">{name || 'Unknown'}</p>
             <p className="break-all text-xs tabular-nums text-muted-foreground">
               {latitude.toFixed(4)}, {longitude.toFixed(4)}
@@ -247,7 +247,7 @@ export function SettingsPage() {
 
           {/* Manual Coordinates */}
           <div className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Manual coordinates</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Manual coordinates</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Input
                 type="text"
@@ -291,7 +291,7 @@ export function SettingsPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs text-muted-foreground/60 hover:text-foreground"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={openAddCurrentDialog}
             >
               <Navigation className="h-3 w-3" /> Save Current
@@ -299,7 +299,7 @@ export function SettingsPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs text-muted-foreground/60 hover:text-foreground"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={openAddDialog}
             >
               <Plus className="h-3 w-3" /> Add
@@ -310,7 +310,7 @@ export function SettingsPage() {
           {savedLocations.length === 0 && (
             <div className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.02] py-8">
               <MapPin className="h-5 w-5 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground">
                 No saved locations yet
               </p>
             </div>
@@ -325,7 +325,7 @@ export function SettingsPage() {
                 onClick={() => handleSelectSaved(loc.id)}
               >
                 <p className="truncate text-sm font-medium">{loc.name}</p>
-                <p className="tabular-nums text-xs text-muted-foreground/50">
+                <p className="tabular-nums text-xs text-muted-foreground">
                   {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
                 </p>
               </button>
@@ -409,7 +409,7 @@ export function SettingsPage() {
             max={5}
             step={1}
           />
-          <div className="flex justify-between text-xs text-muted-foreground/40">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>1 year</span>
             <span>5 years</span>
           </div>
@@ -423,13 +423,13 @@ export function SettingsPage() {
             <DialogTitle className="text-base">
               {editingId ? 'Edit Location' : 'Add Location'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground/60">
+            <DialogDescription className="text-xs text-muted-foreground">
               {editingId ? 'Update this saved location.' : 'Save a new location for quick access.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-xs text-muted-foreground/60">Name</Label>
+              <Label className="text-xs text-muted-foreground">Name</Label>
               <Input
                 placeholder="e.g. Home, Studio, Beach"
                 value={formName}
@@ -439,7 +439,7 @@ export function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="min-w-0">
-                <Label className="text-xs text-muted-foreground/60">Latitude</Label>
+                <Label className="text-xs text-muted-foreground">Latitude</Label>
                 <Input
                   type="text"
                   inputMode="decimal"
@@ -451,7 +451,7 @@ export function SettingsPage() {
                 />
               </div>
               <div className="min-w-0">
-                <Label className="text-xs text-muted-foreground/60">Longitude</Label>
+                <Label className="text-xs text-muted-foreground">Longitude</Label>
                 <Input
                   type="text"
                   inputMode="decimal"

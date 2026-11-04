@@ -1,7 +1,16 @@
 import SunCalc from 'suncalc'
 import type { HourlyForecast, WeatherForecast } from '@/lib/weather/api'
 import type { ProximityEvent } from '@/types'
-import { getDeviceTimeZone, isValidTimeZone, localDayKey, localHour } from '@/lib/time/zone'
+import { TZDate } from '@date-fns/tz'
+import { getSunPosition, getSunTimes } from '@/lib/astronomy/sun-calculator'
+import {
+  addLocalDays,
+  getDeviceTimeZone,
+  isValidTimeZone,
+  localDayKey,
+  localMidnight,
+  localTimeOnDay,
+} from '@/lib/time/zone'
 
 export type WeatherProfile = 'sunset' | 'night'
 
@@ -186,54 +195,100 @@ export function getCombinedOpportunityScore(astronomyScore: number, weatherScore
   return Math.round(astronomyScore * 0.5 + weatherScore * 0.5)
 }
 
+const MINUTE_MS = 60_000
+const SUNSET_WINDOW_BEFORE_MS = 90 * MINUTE_MS
+const SUNSET_WINDOW_AFTER_MS = 60 * MINUTE_MS
+/** Civil twilight: the Sun at −6°. */
+const CIVIL_TWILIGHT_ALTITUDE_DEG = -6
+
+interface DailyCandidate {
+  profile: WeatherProfile
+  weather: HourlyForecast
+}
+
+function pointsBetween(hourly: HourlyForecast[], startMs: number, endMs: number, inclusiveEnd: boolean) {
+  return hourly.filter((point) => {
+    const t = point.time.getTime()
+    return t >= startMs && (inclusiveEnd ? t <= endMs : t < endMs)
+  })
+}
+
+/**
+ * Candidate hours for local date `day` from its real sun times
+ * (ALGORITHM.md → "Daily photo score"):
+ * - sunset profile: sunset − 90 min … sunset + 60 min
+ * - night profile: civil dusk today … civil dawn tomorrow (hours after midnight count as tonight)
+ */
 function getDailyCandidates(
   hourly: HourlyForecast[],
+  day: Date,
+  latitude: number,
+  longitude: number,
   timeZone: string,
-): Array<{ profile: WeatherProfile; weather: HourlyForecast }> {
-  const candidates: Array<{ profile: WeatherProfile; weather: HourlyForecast }> = []
+): DailyCandidate[] {
+  const candidates: DailyCandidate[] = []
+  const today = getSunTimes(day, latitude, longitude, timeZone)
+  const nextDay = addLocalDays(day, 1, timeZone)
+  const tomorrow = getSunTimes(nextDay, latitude, longitude, timeZone)
 
-  // Candidate hours are location-local: sunset 16–22, night 23 and 0–4.
-  for (const point of hourly) {
-    const hour = localHour(point.time, timeZone)
-    if (hour >= 16 && hour <= 22) {
-      candidates.push({ profile: 'sunset', weather: point })
-      continue
+  if (today.sunset) {
+    const sunsetMs = today.sunset.getTime()
+    for (const weather of pointsBetween(hourly, sunsetMs - SUNSET_WINDOW_BEFORE_MS, sunsetMs + SUNSET_WINDOW_AFTER_MS, true)) {
+      candidates.push({ profile: 'sunset', weather })
     }
+  }
 
-    if (hour <= 4 || hour >= 22) {
-      candidates.push({ profile: 'night', weather: point })
+  let nightStart = today.dusk
+  if (!nightStart) {
+    // No civil dusk: deep polar night (always dark) or a white night (never dark).
+    const noon = today.solarNoon ?? localTimeOnDay(day, timeZone, 12)
+    const alwaysDark = getSunPosition(noon, latitude, longitude).altitude < CIVIL_TWILIGHT_ALTITUDE_DEG
+    nightStart = alwaysDark ? localTimeOnDay(day, timeZone, 18) : null
+  }
+  if (nightStart) {
+    const nightEnd = tomorrow.dawn ?? localTimeOnDay(nextDay, timeZone, 6)
+    for (const weather of pointsBetween(hourly, nightStart.getTime(), nightEnd.getTime(), false)) {
+      candidates.push({ profile: 'night', weather })
     }
   }
 
   return candidates
 }
 
-export function buildDailyPhotoScores(forecast: WeatherForecast): DailyPhotoScore[] {
+/** Start of the current hour in the location's zone (handles :30/:45 offsets). */
+function startOfCurrentLocalHour(now: Date, timeZone: string): number {
+  const local = new TZDate(now.getTime(), timeZone)
+  local.setMinutes(0, 0, 0)
+  return local.getTime()
+}
+
+export function buildDailyPhotoScores(forecast: WeatherForecast, now: Date = new Date()): DailyPhotoScore[] {
   // The forecast's own `timezone` is the location's zone (timezone=auto).
   const timeZone = isValidTimeZone(forecast.timezone) ? forecast.timezone : getDeviceTimeZone()
-  const byDay = new Map<string, HourlyForecast[]>()
+  const hourly = [...forecast.hourly].sort((a, b) => a.time.getTime() - b.time.getTime())
+  if (hourly.length === 0) return []
 
-  for (const point of forecast.hourly) {
+  const notBefore = startOfCurrentLocalHour(now, timeZone)
+  const dayStarts = new Map<string, Date>()
+  for (const point of hourly) {
     const key = localDayKey(point.time, timeZone)
-    const existing = byDay.get(key)
-    if (existing) {
-      existing.push(point)
-      continue
-    }
-    byDay.set(key, [point])
+    if (!dayStarts.has(key)) dayStarts.set(key, localMidnight(point.time, timeZone))
   }
+
+  // Hours before dawn on the first date belong to the previous evening's night ("tonight").
+  const firstDay = dayStarts.values().next().value as Date
+  const days = [localMidnight(addLocalDays(firstDay, -1, timeZone), timeZone), ...dayStarts.values()]
 
   const results: DailyPhotoScore[] = []
 
-  for (const points of byDay.values()) {
-    if (points.length === 0) continue
-    const dayCandidates = getDailyCandidates(points, timeZone)
-    const fallback = dayCandidates.length > 0 ? dayCandidates : [{ profile: 'sunset' as const, weather: points[0] }]
+  for (const dayStart of days) {
+    const candidates = getDailyCandidates(hourly, dayStart, forecast.latitude, forecast.longitude, timeZone)
+      .filter((candidate) => candidate.weather.time.getTime() >= notBefore)
 
     let best: ScoredConditions | null = null
     let bestWeather: HourlyForecast | null = null
 
-    for (const candidate of fallback) {
+    for (const candidate of candidates) {
       const scored = scoreWeatherConditions(candidate.profile, candidate.weather)
       if (!best || scored.score > best.score) {
         best = scored
@@ -244,7 +299,7 @@ export function buildDailyPhotoScores(forecast: WeatherForecast): DailyPhotoScor
     if (!best || !bestWeather) continue
 
     results.push({
-      date: points[0].time,
+      date: dayStart,
       profile: best.profile,
       score: best.score,
       icon: best.icon,

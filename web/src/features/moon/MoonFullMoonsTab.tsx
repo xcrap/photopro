@@ -44,7 +44,7 @@ export function MoonFullMoonsTab({ fullMoons, now, timeZone }: MoonFullMoonsTabP
       </div>
 
       {fullMoons.length === 0 ? (
-        <p className="py-8 text-center text-xs text-muted-foreground/70">
+        <p className="py-8 text-center text-xs text-muted-foreground">
           No full moons found in range
         </p>
       ) : (

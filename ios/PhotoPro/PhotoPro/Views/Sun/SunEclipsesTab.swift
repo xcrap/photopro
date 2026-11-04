@@ -74,7 +74,7 @@ struct SunEclipsesTab: View {
                 Spacer()
 
                 if let score = weatherScore {
-                    WeatherBadge(score: score.score, compact: true)
+                    WeatherBadge(conditions: score, compact: true)
                 }
 
                 Text(eclipse.type.rawValue.uppercased())
@@ -91,7 +91,7 @@ struct SunEclipsesTab: View {
             // Row 3: Description
             Text(eclipse.description)
                 .font(.caption)
-                .foregroundStyle(Theme.foreground.opacity(0.5))
+                .foregroundStyle(Theme.foreground.opacity(0.65))
                 .fixedSize(horizontal: false, vertical: true)
 
             // Row 4: Visibility bar
@@ -99,7 +99,7 @@ struct SunEclipsesTab: View {
                 HStack(spacing: 0) {
                     Text("Visibility")
                         .font(.caption2)
-                        .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                        .foregroundStyle(Theme.mutedForeground)
                     Spacer()
                     Text(visibility > 0 ? "\(Int(visibility))%" : "—")
                         .font(.callout.weight(.bold).monospacedDigit())
@@ -122,11 +122,11 @@ struct SunEclipsesTab: View {
             // Row 5: Stats
             HStack(spacing: 0) {
                 Text("Duration \(eclipse.duration)")
-                Text("  |  ").foregroundStyle(.white.opacity(0.1))
+                Text("  |  ").foregroundStyle(.white.opacity(0.1)).accessibilityHidden(true)
                 Text(String(format: "Magnitude %.2f", eclipse.magnitude))
             }
             .font(.caption.monospacedDigit())
-            .foregroundStyle(Theme.foreground.opacity(0.5))
+            .foregroundStyle(Theme.foreground.opacity(0.65))
         }
         .surfaceCard(accent: Theme.eclipseAccent)
     }

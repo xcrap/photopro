@@ -107,7 +107,7 @@ export function MoonProximityTab({ events, timeZone }: MoonProximityTabProps) {
       </div>
 
       {rankedEvents.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground/60">
+        <p className="py-8 text-center text-sm text-muted-foreground">
           {showGoodWeatherOnly ? 'No good-weather opportunities in range' : 'No opportunities found in the next year'}
         </p>
       ) : (
@@ -138,11 +138,11 @@ export function MoonProximityTab({ events, timeZone }: MoonProximityTabProps) {
                 {/* Times row */}
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground/70">{labels.moon}</p>
+                    <p className="text-xs text-muted-foreground">{labels.moon}</p>
                     <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.moonTime, timeFormat, timeZone)}</p>
                   </div>
                   <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground/70">{labels.sun}</p>
+                    <p className="text-xs text-muted-foreground">{labels.sun}</p>
                     <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.sunTime, timeFormat, timeZone)}</p>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export function MoonProximityTab({ events, timeZone }: MoonProximityTabProps) {
                 </div>
 
                 {/* Context line */}
-                <p className="mt-2.5 text-sm text-muted-foreground/60">
+                <p className="mt-2.5 text-sm text-muted-foreground">
                   {getTimingRelation(event)}
                   <span className="mx-1.5 text-white/10">·</span>
                   <span className={quality.className}>{quality.text}</span>

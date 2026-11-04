@@ -28,7 +28,7 @@ struct EventCard: View {
                 if let detail {
                     Text(detail)
                         .font(.caption2)
-                        .foregroundStyle(Theme.mutedForeground.opacity(0.7))
+                        .foregroundStyle(Theme.mutedForeground)
                 }
             }
 

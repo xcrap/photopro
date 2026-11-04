@@ -330,23 +330,8 @@ struct WeatherDayRow: View {
 
             Spacer(minLength: 4)
 
-            // Score badge - compact
-            let color = Theme.scoreColor(for: day.score)
-            HStack(spacing: 3) {
-                Image(systemName: WeatherScoring.getScoreIcon(day.score))
-                    .font(.system(size: 9))
-                Text("\(day.score)")
-                    .font(.caption2.weight(.bold).monospacedDigit())
-            }
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(color.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(color.opacity(0.2), lineWidth: 1)
-            )
+            // Score badge — tap for the breakdown
+            WeatherBadge(conditions: day.conditions)
         }
         .padding(.vertical, 10)
     }

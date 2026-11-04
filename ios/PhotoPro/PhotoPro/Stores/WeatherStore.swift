@@ -100,6 +100,8 @@ final class WeatherStore {
         if !force, let forecast, forecast.cacheKey == key,
            Date().timeIntervalSince1970 - forecast.fetchedAt <= cacheTTL {
             error = nil
+            // Re-score so candidate hours that have passed drop out.
+            dailyScores = WeatherScoring.buildDailyPhotoScores(forecast)
             return
         }
 

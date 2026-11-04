@@ -100,7 +100,7 @@ struct NightMeteorsTab: View {
 
             // Row 4: Weather badge
             if let score = weatherScore {
-                WeatherBadge(score: score.score)
+                WeatherBadge(conditions: score)
             }
         }
         .surfaceCard(accent: Theme.sunAccent)

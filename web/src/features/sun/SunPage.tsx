@@ -221,7 +221,7 @@ export function SunPage() {
             </div>
 
             {filteredEclipses.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground/60">
+              <p className="py-8 text-center text-sm text-muted-foreground">
                 {visibleOnly
                   ? 'No visible solar eclipses for your location in this range'
                   : `No solar eclipses in the next ${eclipseYearsRange} year${eclipseYearsRange > 1 ? 's' : ''}`}
