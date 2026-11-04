@@ -63,5 +63,6 @@ struct ContentView: View {
         .environment(LocationStore())
         .environment(SettingsStore())
         .environment(WeatherStore())
+        .environment(HorizonStore())
         .preferredColorScheme(.dark)
 }

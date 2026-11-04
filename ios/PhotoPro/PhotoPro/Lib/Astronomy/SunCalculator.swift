@@ -25,18 +25,16 @@ enum SunCalculator {
             sunrise: times.sunrise,
             sunset: times.sunset,
             solarNoon: times.solarNoon,
-            // Golden hour evening: sun at 6° → sunset
-            goldenHourStart: times.goldenHour,
-            goldenHourEnd: times.sunset,
-            // Golden hour morning: sunrise → sun at 6°
-            goldenHourMorningStart: times.sunrise,
-            goldenHourMorningEnd: times.goldenHourEnd,
-            // Blue hour morning: nautical dawn → civil dawn
-            blueHourMorningStart: times.nauticalDawn,
-            blueHourMorningEnd: times.dawn,
-            // Blue hour evening: civil dusk → nautical dusk
-            blueHourEveningStart: times.dusk,
-            blueHourEveningEnd: times.nauticalDusk,
+            // Photographer hours (ALGORITHM.md → "Photographer hours"):
+            // blue −6° → −4°, golden −4° → +6° in the morning; mirrored in the evening.
+            goldenHourStart: times.goldenHour,          // +6° setting
+            goldenHourEnd: times.blueHour,              // −4° setting
+            goldenHourMorningStart: times.blueHourEnd,  // −4° rising
+            goldenHourMorningEnd: times.goldenHourEnd,  // +6° rising
+            blueHourMorningStart: times.dawn,           // −6° rising
+            blueHourMorningEnd: times.blueHourEnd,      // −4° rising
+            blueHourEveningStart: times.blueHour,       // −4° setting
+            blueHourEveningEnd: times.dusk,             // −6° setting
             dawn: times.dawn,
             dusk: times.dusk,
             nauticalDawn: times.nauticalDawn,

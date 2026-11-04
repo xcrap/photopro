@@ -2,6 +2,12 @@ import SunCalc from 'suncalc'
 import type { SunTimes, SunPosition, PolarCondition } from '@/types'
 import { localNoon } from '@/lib/time/zone'
 
+// Photographer hours (ALGORITHM.md → "Photographer hours"): blue hour −6°…−4°,
+// golden hour −4°…+6°. SunCalc has no −4° time built in.
+SunCalc.addTime(-4, 'blueHourEnd', 'blueHourStart')
+
+type TimesWithBlueHour = SunCalc.GetTimesResult & { blueHourEnd?: Date; blueHourStart?: Date }
+
 function validOrNull(date: Date | undefined): Date | null {
   if (!date) return null
   return Number.isNaN(date.getTime()) ? null : date
@@ -14,7 +20,9 @@ function validOrNull(date: Date | undefined): Date | null {
  */
 export function getSunTimes(date: Date, lat: number, lon: number, timeZone: string): SunTimes {
   const noon = localNoon(date, timeZone)
-  const times = SunCalc.getTimes(noon, lat, lon)
+  const times = SunCalc.getTimes(noon, lat, lon) as TimesWithBlueHour
+  const minusFourMorning = validOrNull(times.blueHourEnd)
+  const minusFourEvening = validOrNull(times.blueHourStart)
 
   const sunrise = validOrNull(times.sunrise)
   const sunset = validOrNull(times.sunset)
@@ -32,21 +40,21 @@ export function getSunTimes(date: Date, lat: number, lon: number, timeZone: stri
     solarNoon,
     polar,
 
-    // Golden hour evening: sun from 6° down to sunset
+    // Golden hour evening: sun from +6° down to −4°
     goldenHourStart: validOrNull(times.goldenHour),
-    goldenHourEnd: sunset,
+    goldenHourEnd: minusFourEvening,
 
-    // Golden hour morning: sunrise until the sun reaches 6°
-    goldenHourMorningStart: sunrise,
+    // Golden hour morning: sun from −4° up to +6°
+    goldenHourMorningStart: minusFourMorning,
     goldenHourMorningEnd: validOrNull(times.goldenHourEnd),
 
-    // Blue hour morning: nautical dawn (-12°) to civil dawn (-6°)
-    blueHourMorningStart: validOrNull(times.nauticalDawn),
-    blueHourMorningEnd: validOrNull(times.dawn),
+    // Blue hour morning: civil dawn (−6°) to −4°
+    blueHourMorningStart: validOrNull(times.dawn),
+    blueHourMorningEnd: minusFourMorning,
 
-    // Blue hour evening: civil dusk (-6°) to nautical dusk (-12°)
-    blueHourEveningStart: validOrNull(times.dusk),
-    blueHourEveningEnd: validOrNull(times.nauticalDusk),
+    // Blue hour evening: −4° to civil dusk (−6°)
+    blueHourEveningStart: minusFourEvening,
+    blueHourEveningEnd: validOrNull(times.dusk),
 
     dawn: validOrNull(times.dawn),
     dusk: validOrNull(times.dusk),

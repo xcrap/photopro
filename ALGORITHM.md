@@ -9,8 +9,8 @@ All "local" times and calendar days use the **location's** time zone, not the de
 
 | Rule | Value |
 |------|-------|
-| Location time zone | IANA `timezone` returned by Open-Meteo (`timezone=auto`) for the current coordinates; persisted with saved locations |
-| Fallback | Device time zone (before the first forecast for a location, or offline) |
+| Location time zone | First available, persisted with saved locations: (1) the zone found from the coordinates themselves — web: offline boundary lookup (`@photostructure/tz-lookup`); iOS: reverse geocoding or a searched place's time zone; (2) the IANA `timezone` returned by Open-Meteo (`timezone=auto`) |
+| Fallback | Device time zone (only until one of the above is known) |
 | Display | Every time and date shown in the UI is formatted in the location time zone |
 
 Day-dependent calculations all use location-local days:
@@ -23,9 +23,56 @@ Day-dependent calculations all use location-local days:
 ## Sun Times
 
 - Call SunCalc `getTimes` with the instant of **12:00 local time** (location time zone) on the selected date. SunCalc returns the solar day nearest the given instant, so passing local midnight or an arbitrary time can return the previous or next day.
+
+### Photographer hours (Sun altitude)
+
+| Window | Morning | Evening |
+|--------|---------|---------|
+| **Blue hour** | −6° (civil dawn) → −4° | −4° → −6° (civil dusk) |
+| **Golden hour** | −4° → +6° | +6° → −4° |
+
+- The −4° crossings are an extra SunCalc time (`addTime(-4, …)`).
+- Sunrise and sunset (−0.833°) fall inside the golden hours.
+- Countdown events start at these boundaries:
+  - Blue hour AM = −6° rising
+  - Golden hour AM = −4° rising
+  - Golden hour PM = +6° setting
+  - Blue hour PM = −4° setting
 - **Polar day/night:** when the Sun never reaches an event's altitude on that day, the event is **absent** (`null` / `nil`). Never substitute another time.
   - UI shows `—`, plus "Sun stays up all day" (sun altitude > 0 at solar noon and no sunset) or "Sun stays below the horizon" (no sunrise and altitude < 0 at solar noon).
   - Countdown and other features skip absent events.
+
+## Terrain Horizon (Real First/Last Light)
+
+Astronomical rise/set assumes a flat horizon. Hills, cliffs and calderas hide the Sun and Moon for longer, so the app also computes when they really clear the skyline. Trees and buildings are not in the data.
+
+### Skyline
+
+- **Elevation data:** Mapzen Terrarium tiles (`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`).
+  - Decode with `elevation = R·256 + G + B/256 − 32768` metres, with no colour conversion.
+  - Clamp negative values (sea) to 0.
+- **Mosaics:** zoom 12 within 4.5 km, zoom 10 within 32 km, and zoom 8 within 170 km of the point. Sample them with bilinear interpolation.
+  - For a sample point within 4 km of the observer use zoom 12; within 30 km, zoom 10; otherwise zoom 8.
+  - Fall back to zoom 8, then to 0 m.
+- **Observer eye:** ground elevation at the point + 1.7 m.
+- **Rays:** 720 rays, one every 0.5° of azimuth from north.
+  - Along each ray, sample from d = 25 m outward with step `max(15 m, 0.008·d)`, up to 160 km.
+  - At each sample: `drop = d² / (2R) · (1 − 0.13)` with R = 6,371,008.8 m (Earth's curvature minus terrestrial refraction), and angle = `atan((h − drop − eye) / d)`.
+  - Skyline angle for the ray = the maximum angle, in degrees. Keep its distance, and whether that point is sea (`h < 1`).
+- **Skyline at any azimuth:** linear interpolation between the two neighbouring rays.
+- Compute once per location (in a background worker/task) and reuse it for every date and time.
+
+### First and last light
+
+- **Apparent altitude:**
+  - Sun: SunCalc's altitude plus astronomical refraction `R(h) = 0.0002967 / tan(h + 0.00312536 / (h + 0.08901179))` radians, with h clamped to ≥ 0.
+  - Moon: SunCalc's moon altitude (which already includes refraction).
+- **Visible** when the upper limb clears the skyline: `apparentAltitude + semiDiameter > skyline(azimuth)`. Semi-diameter is 0.27° for the Sun and 0.26° for the Moon.
+- Scan the local day from local midnight every 2 minutes, then bisect each visibility change to within 5 s.
+  - **First light** = the first hidden → visible change.
+  - **Last light** = the last visible → hidden change.
+  - The same scan for the Moon gives "Moon clears the terrain" and "Moon drops behind the terrain".
+- If the body is never visible that day, both are absent.
 
 ## Moon Ephemeris
 

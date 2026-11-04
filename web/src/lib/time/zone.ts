@@ -1,5 +1,6 @@
 import { TZDate, tz } from '@date-fns/tz'
 import { differenceInCalendarDays, format } from 'date-fns'
+import tzLookup from '@photostructure/tz-lookup'
 
 /**
  * Helpers for working in the *location's* time zone (see ALGORITHM.md →
@@ -11,6 +12,16 @@ export function getDeviceTimeZone(): string {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
   } catch {
     return 'UTC'
+  }
+}
+
+/** IANA zone at coordinates from offline time-zone boundaries, or null. */
+export function timeZoneAt(latitude: number, longitude: number): string | null {
+  try {
+    const zone = tzLookup(latitude, longitude)
+    return isValidTimeZone(zone) ? zone : null
+  } catch {
+    return null
   }
 }
 

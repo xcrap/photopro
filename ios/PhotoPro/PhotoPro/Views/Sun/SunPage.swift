@@ -61,5 +61,16 @@ struct SunPage: View {
         .background(Theme.background)
         .navigationTitle("Sun")
         .toolbarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    MapPlannerPage()
+                } label: {
+                    Image(systemName: "map.fill")
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+                .accessibilityLabel("Sun and moon map")
+            }
+        }
     }
 }

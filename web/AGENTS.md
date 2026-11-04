@@ -14,6 +14,8 @@
 - Pre-computed data: eclipse/meteor/comet JSON in `src/data/` (2024-2030); supermoons are computed (`lib/astronomy/moon-ephemeris.ts`)
 - Times and days use the **location's** time zone (`useTimeZone()`, `lib/time/zone.ts`); always pass it to `formatTime`/`formatDate` and the astronomy calculators
 - Zustand stores with localStorage persistence in `src/stores/`
+- Map page (`features/map/`): MapLibre + OpenFreeMap tiles, rays from `lib/geo/bearing.ts`; place search via Open-Meteo geocoding (`lib/geo/search.ts`)
+- Terrain horizon (`lib/terrain/`): skyline built in a web worker from Terrarium tiles; first/last light per ALGORITHM.md
 - Pages are lazy-loaded per route (`App.tsx`); `vite-plugin-pwa` generates a service worker that precaches the app shell (offline + auto-update)
 - GPS-first location with manual fallback
 

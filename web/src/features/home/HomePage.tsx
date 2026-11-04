@@ -196,7 +196,7 @@ export function HomePage() {
                   {sunCountdowns.goldenHour && (
                     <span className="text-xs font-normal text-yellow-400/70">{sunCountdowns.goldenHour}</span>
                   )}
-                  <span>{formatTimeRange(sunTimes.goldenHourStart, sunTimes.sunset, timeFormat, timeZone)}</span>
+                  <span>{formatTimeRange(sunTimes.goldenHourStart, sunTimes.goldenHourEnd, timeFormat, timeZone)}</span>
                 </span>
               }
               icon={<Camera className="h-3.5 w-3.5 text-yellow-400/70" />}

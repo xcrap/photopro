@@ -7,6 +7,7 @@ struct HomePage: View {
     @State private var selectedDate = Date()
     @State private var currentTime = Date()
     @State private var navigateToSettings = false
+    @State private var navigateToMap = false
 
     private let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
@@ -53,15 +54,28 @@ struct HomePage: View {
             .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    navigateToMap = true
+                } label: {
+                    Image(systemName: "map.fill")
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+                .accessibilityLabel("Sun and moon map")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     navigateToSettings = true
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .foregroundStyle(Theme.mutedForeground)
                 }
+                .accessibilityLabel("Settings")
             }
         }
         .navigationDestination(isPresented: $navigateToSettings) {
             SettingsPage()
+        }
+        .navigationDestination(isPresented: $navigateToMap) {
+            MapPlannerPage()
         }
         .onReceive(timer) { _ in
             currentTime = Date()

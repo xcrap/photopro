@@ -17,9 +17,40 @@ export default defineConfig({
       includeAssets: ['icons/*.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico,json,webmanifest}'],
+        // The lazily loaded map library is ~1 MB; precache it so the Map page opens offline.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [
+          // Map, imagery and terrain tiles: cache what you've looked at so the map and the
+          // real-horizon calculation keep working offline.
+          {
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/server\.arcgisonline\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'imagery-tiles',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/s3\.amazonaws\.com\/elevation-tiles-prod\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'terrain-tiles',
+              expiration: { maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'StaleWhileRevalidate',
@@ -44,6 +75,8 @@ export default defineConfig({
     },
   },
   build: {
+    // maplibre-gl is one ~1 MB chunk, loaded only by the Map page.
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         // Long-lived vendor chunks; feature pages are split by route (React.lazy in App.tsx).
@@ -52,6 +85,7 @@ export default defineConfig({
           if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return 'react'
           if (id.includes('node_modules/radix-ui') || id.includes('node_modules/@radix-ui')) return 'radix'
           if (/node_modules\/(date-fns|@date-fns|suncalc)\//.test(id)) return 'dates'
+          if (id.includes('node_modules/maplibre-gl')) return 'maplibre'
           return undefined
         },
       },

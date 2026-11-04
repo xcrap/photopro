@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Moon, Sun, Stars, CloudSun, Settings } from 'lucide-react'
+import { Home, Moon, Sun, Stars, CloudSun, Settings, Map as MapIcon } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/sun', label: 'Sun', icon: Sun },
   { to: '/moon', label: 'Moon', icon: Moon },
   { to: '/night', label: 'Night', icon: Stars },
+  { to: '/map', label: 'Map', icon: MapIcon },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

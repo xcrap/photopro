@@ -19,12 +19,23 @@ final class LocationStore {
     var gpsStatus: GpsStatus = .idle
     var savedLocations: [SavedLocation] = []
 
-    /// IANA time zone of the current location (from the forecast); `nil` until known.
+    /// IANA time zone of the current location; `nil` until known.
     private(set) var timeZoneIdentifier: String?
+    /// Where `timeZoneIdentifier` came from. A zone found from the coordinates themselves (reverse
+    /// geocoding, a searched place, a saved location) wins over the forecast's.
+    private(set) var timeZoneSource: TimeZoneSource = .unknown
+
+    enum TimeZoneSource: String, Codable, Sendable {
+        case coordinates
+        case forecast
+        case unknown
+    }
 
     @ObservationIgnored private let locationManager = CLLocationManager()
     @ObservationIgnored private var locationDelegate: LocationDelegate?
     @ObservationIgnored private var geocodeTask: Task<Void, Never>?
+    /// Whether the reverse-geocoded place name should replace the current name.
+    @ObservationIgnored private var nameFromGeocoding = false
 
     /// The location's time zone, falling back to the device's (ALGORITHM.md → "Time Zones").
     var timeZone: TimeZone {
@@ -46,14 +57,22 @@ final class LocationStore {
         if gpsEnabled {
             requestLocation()
         }
+        if timeZoneSource != .coordinates {
+            scheduleReverseGeocode(resolveName: false)
+        }
     }
 
     // MARK: - Location Management
 
-    /// Set the current location. A known time zone can be passed (saved locations); otherwise it is
-    /// kept for the same coordinates, looked up from saved locations, or reset to the device fallback
-    /// until the forecast reports one.
-    func setLocation(lat: Double, lon: Double, name: String? = nil, timeZoneIdentifier: String? = nil) {
+    /// Set the current location.
+    ///
+    /// Time zone order (ALGORITHM.md → "Time Zones"): a zone from the coordinates themselves (passed in
+    /// for searched/saved places, else reverse geocoding), then the forecast's, then the device's.
+    /// Reverse geocoding runs only when the 3-decimal location key changes, never on GPS jitter.
+    /// - Parameters:
+    ///   - timeZoneIdentifier: a zone known for these coordinates (searched place, saved location).
+    ///   - resolveName: replace `name` with the reverse-geocoded place name when it arrives.
+    func setLocation(lat: Double, lon: Double, name: String? = nil, timeZoneIdentifier: String? = nil, resolveName: Bool = false) {
         let newKey = LocationKey.make(latitude: lat, longitude: lon)
         let coordinatesChanged = newKey != coordinateKey
 
@@ -61,26 +80,72 @@ final class LocationStore {
         longitude = lon
         self.name = name
 
-        if let timeZoneIdentifier {
+        if let timeZoneIdentifier, TimeZone(identifier: timeZoneIdentifier) != nil {
             self.timeZoneIdentifier = timeZoneIdentifier
+            timeZoneSource = .coordinates
+            if coordinatesChanged || resolveName {
+                geocodeTask?.cancel()
+                if resolveName { scheduleReverseGeocode(resolveName: true) }
+            }
         } else if coordinatesChanged {
-            self.timeZoneIdentifier = savedLocations.first {
-                LocationKey.make(latitude: $0.latitude, longitude: $0.longitude) == newKey
-            }?.timeZoneIdentifier
+            if let saved = savedLocations.first(where: {
+                LocationKey.make(latitude: $0.latitude, longitude: $0.longitude) == newKey && $0.timeZoneIdentifier != nil
+            }) {
+                self.timeZoneIdentifier = saved.timeZoneIdentifier
+                timeZoneSource = .coordinates
+                geocodeTask?.cancel()
+                if resolveName { scheduleReverseGeocode(resolveName: true) }
+            } else {
+                self.timeZoneIdentifier = nil
+                timeZoneSource = .unknown
+                scheduleReverseGeocode(resolveName: resolveName)
+            }
         }
         saveToStorage()
     }
 
-    /// Record the time zone reported by the forecast for `latitude`/`longitude`. Ignored if that is
-    /// no longer the current location. Also stored on any saved location with the same coordinates.
-    func applyForecastTimeZone(_ identifier: String, latitude: Double, longitude: Double) {
-        guard TimeZone(identifier: identifier) != nil else { return }
-        let key = LocationKey.make(latitude: latitude, longitude: longitude)
-        guard key == coordinateKey else { return }
+    /// Reverse-geocode the current coordinates (debounced, so a dragged pin geocodes once it settles)
+    /// for the time zone and, optionally, the place name.
+    private func scheduleReverseGeocode(resolveName: Bool) {
+        geocodeTask?.cancel()
+        nameFromGeocoding = resolveName
+        let lat = latitude
+        let lon = longitude
+        let key = coordinateKey
+        geocodeTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled,
+                  let request = MKReverseGeocodingRequest(location: CLLocation(latitude: lat, longitude: lon)) else { return }
+            let item = (try? await request.mapItems)?.first
+            guard let self, !Task.isCancelled, self.coordinateKey == key, let item else { return }
+            if let zone = item.timeZone?.identifier {
+                self.applyTimeZone(zone, source: .coordinates, key: key)
+            }
+            // A locality reads better than a postcode or street number.
+            let placeName = item.addressRepresentations?.cityWithContext
+                ?? item.addressRepresentations?.cityName
+                ?? item.name
+            if self.nameFromGeocoding, let placeName {
+                self.name = placeName
+                self.saveToStorage()
+            }
+        }
+    }
 
+    /// Record the time zone reported by the forecast for `latitude`/`longitude`. Used only until a
+    /// zone from the coordinates is known, and ignored if that is no longer the current location.
+    func applyForecastTimeZone(_ identifier: String, latitude: Double, longitude: Double) {
+        guard timeZoneSource != .coordinates else { return }
+        applyTimeZone(identifier, source: .forecast, key: LocationKey.make(latitude: latitude, longitude: longitude))
+    }
+
+    /// Store a zone for the current location and on any saved location with the same coordinates.
+    private func applyTimeZone(_ identifier: String, source: TimeZoneSource, key: String) {
+        guard TimeZone(identifier: identifier) != nil, key == coordinateKey else { return }
         var changed = false
-        if timeZoneIdentifier != identifier {
+        if timeZoneIdentifier != identifier || timeZoneSource != source {
             timeZoneIdentifier = identifier
+            timeZoneSource = source
             changed = true
         }
         for index in savedLocations.indices
@@ -98,7 +163,6 @@ final class LocationStore {
         if enabled {
             requestLocation()
         } else {
-            geocodeTask?.cancel()
             gpsStatus = .idle
         }
     }
@@ -108,11 +172,29 @@ final class LocationStore {
         setLocation(lat: saved.latitude, lon: saved.longitude, name: saved.name, timeZoneIdentifier: saved.timeZoneIdentifier)
     }
 
+    /// Use a place picked from search (its MapKit time zone, if known, is authoritative).
+    func useSearchedPlace(_ place: PlaceResult) {
+        setGpsEnabled(false)
+        setLocation(lat: place.latitude, lon: place.longitude, name: place.name, timeZoneIdentifier: place.timeZoneIdentifier)
+    }
+
+    /// Move the location to a point picked on the map; the place name comes from reverse geocoding.
+    func useMapPoint(latitude: Double, longitude: Double) {
+        setGpsEnabled(false)
+        setLocation(lat: latitude, lon: longitude, name: "Dropped pin", resolveName: true)
+    }
+
+    /// The current time zone if it was found from the coordinates (worth saving with a place).
+    var coordinateTimeZoneIdentifier: String? {
+        timeZoneSource == .coordinates ? timeZoneIdentifier : nil
+    }
+
     func resetToDefault() {
         latitude = defaultLatitude
         longitude = defaultLongitude
         name = defaultName
         timeZoneIdentifier = nil
+        timeZoneSource = .unknown
         gpsEnabled = true
         gpsStatus = .idle
         savedLocations = []
@@ -191,19 +273,9 @@ final class LocationStore {
         guard gpsEnabled else { return }
         gpsStatus = .granted
 
+        // Same 3-decimal key: keep the name and time zone (no reverse geocoding on jitter).
         let sameKey = LocationKey.make(latitude: lat, longitude: lon) == coordinateKey
-        setLocation(lat: lat, lon: lon, name: sameKey ? name : nil)
-
-        geocodeTask?.cancel()
-        geocodeTask = Task { [weak self] in
-            guard let request = MKReverseGeocodingRequest(location: CLLocation(latitude: lat, longitude: lon)) else { return }
-            let placeName = (try? await request.mapItems)?.first?.name
-            guard let self, !Task.isCancelled, self.gpsEnabled,
-                  self.coordinateKey == LocationKey.make(latitude: lat, longitude: lon),
-                  let placeName else { return }
-            self.name = placeName
-            self.saveToStorage()
-        }
+        setLocation(lat: lat, lon: lon, name: sameKey ? name : nil, resolveName: !sameKey)
     }
 
     fileprivate func handleLocationError() {
@@ -220,6 +292,7 @@ final class LocationStore {
         var gpsEnabled: Bool
         var savedLocations: [SavedLocation]
         var timeZoneIdentifier: String?
+        var timeZoneSource: TimeZoneSource?
     }
 
     private func saveToStorage() {
@@ -229,7 +302,8 @@ final class LocationStore {
             name: name,
             gpsEnabled: gpsEnabled,
             savedLocations: savedLocations,
-            timeZoneIdentifier: timeZoneIdentifier
+            timeZoneIdentifier: timeZoneIdentifier,
+            timeZoneSource: timeZoneSource
         )
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: storageKey)
@@ -247,6 +321,7 @@ final class LocationStore {
         gpsEnabled = state.gpsEnabled
         savedLocations = state.savedLocations
         timeZoneIdentifier = state.timeZoneIdentifier
+        timeZoneSource = state.timeZoneIdentifier == nil ? .unknown : (state.timeZoneSource ?? .forecast)
     }
 }
 

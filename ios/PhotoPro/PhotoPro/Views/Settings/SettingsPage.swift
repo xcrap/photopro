@@ -7,9 +7,44 @@ struct SettingsPage: View {
     @State private var editingLocation: SavedLocation?
     @State private var manualLat = ""
     @State private var manualLon = ""
+    @State private var search = PlaceSearchModel()
+    @State private var placeToSave: PlaceResult?
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         Form {
+            // MARK: - Search
+            Section {
+                TextField("Search places", text: $search.query)
+                    .focused($searchFocused)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                ForEach(search.suggestions) { suggestion in
+                    Button {
+                        Task { await pick(suggestion) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(suggestion.title)
+                                .foregroundStyle(Theme.foreground)
+                            if !suggestion.subtitle.isEmpty {
+                                Text(suggestion.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.mutedForeground)
+                            }
+                        }
+                    }
+                    .disabled(search.isSearching)
+                }
+                if let message = search.errorMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(Theme.destructive)
+                }
+            } header: {
+                Text("Find a Place")
+            }
+
             // MARK: - Location
             Section("Location") {
                 Toggle("Use GPS", isOn: Binding(
@@ -154,6 +189,26 @@ struct SettingsPage: View {
         .background(Theme.background)
         .navigationTitle("Settings")
         .toolbarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            "Save \(placeToSave?.name ?? "this place")?",
+            isPresented: Binding(get: { placeToSave != nil }, set: { if !$0 { placeToSave = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Save to Saved Locations") {
+                if let place = placeToSave {
+                    locationStore.addSavedLocation(
+                        name: place.name,
+                        latitude: place.latitude,
+                        longitude: place.longitude,
+                        timeZoneIdentifier: place.timeZoneIdentifier ?? locationStore.coordinateTimeZoneIdentifier
+                    )
+                }
+                placeToSave = nil
+            }
+            Button("Not Now", role: .cancel) { placeToSave = nil }
+        } message: {
+            Text("It's now the current location.")
+        }
         .sheet(isPresented: $showingLocationDialog) {
             LocationDialog(
                 editingLocation: editingLocation,
@@ -166,6 +221,23 @@ struct SettingsPage: View {
                 }
             )
         }
+    }
+}
+
+// MARK: - Search
+
+extension SettingsPage {
+    /// Set the picked place as the location, then offer to save it.
+    private func pick(_ suggestion: PlaceSearchModel.Suggestion) async {
+        guard let place = await search.resolve(suggestion) else { return }
+        locationStore.useSearchedPlace(place)
+        search.clear()
+        searchFocused = false
+        let alreadySaved = locationStore.savedLocations.contains {
+            LocationKey.make(latitude: $0.latitude, longitude: $0.longitude)
+                == LocationKey.make(latitude: place.latitude, longitude: place.longitude)
+        }
+        if !alreadySaved { placeToSave = place }
     }
 }
 

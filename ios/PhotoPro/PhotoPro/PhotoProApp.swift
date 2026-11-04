@@ -5,6 +5,7 @@ struct PhotoProApp: App {
     @State private var locationStore: LocationStore
     @State private var settingsStore = SettingsStore()
     @State private var weatherStore: WeatherStore
+    @State private var horizonStore = HorizonStore()
 
     init() {
         let location = LocationStore()
@@ -20,6 +21,7 @@ struct PhotoProApp: App {
                 .environment(locationStore)
                 .environment(settingsStore)
                 .environment(weatherStore)
+                .environment(horizonStore)
                 .preferredColorScheme(.dark)
         }
     }

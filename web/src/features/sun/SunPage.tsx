@@ -14,6 +14,7 @@ import { SectionHeader } from '@/components/shared/SectionHeader'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { DateNavigator } from '@/components/shared/DateNavigator'
 import { WeatherBadge } from '@/features/weather/WeatherBadge'
+import { TerrainCard } from '@/features/terrain/TerrainCard'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useWeatherStore } from '@/stores/weather-store'
@@ -29,7 +30,7 @@ import solarEclipsesData from '@/data/solar-eclipses.json'
 import type { EclipseEvent } from '@/types'
 
 export function SunPage() {
-  const { selectedDate, timeZone, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
+  const { selectedDate, selectedDayStart, timeZone, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
   const latitude = useLocationStore((s) => s.latitude)
   const longitude = useLocationStore((s) => s.longitude)
   const { timeFormat, eclipseYearsRange } = useSettingsStore()
@@ -183,6 +184,14 @@ export function SunPage() {
                 />
             </div>
           </div>
+
+          <TerrainCard
+            latitude={latitude}
+            longitude={longitude}
+            dayStart={selectedDayStart}
+            sunTimes={sunTimes}
+            timeZone={timeZone}
+          />
 
           {/* Twilight */}
           <div className="space-y-3">

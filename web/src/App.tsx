@@ -10,6 +10,7 @@ const MoonPage = lazy(() => import('@/features/moon/MoonPage').then((m) => ({ de
 const SunPage = lazy(() => import('@/features/sun/SunPage').then((m) => ({ default: m.SunPage })))
 const NightPage = lazy(() => import('@/features/night/NightPage').then((m) => ({ default: m.NightPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const MapPage = lazy(() => import('@/features/map/MapPage').then((m) => ({ default: m.MapPage })))
 const WeatherPage = lazy(() => import('@/features/weather/WeatherPage').then((m) => ({ default: m.WeatherPage })))
 
 function PageFallback() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/sun" element={withFeatureBoundary('Sun', <SunPage />)} />
           <Route path="/night" element={withFeatureBoundary('Night', <NightPage />)} />
           <Route path="/weather" element={withFeatureBoundary('Weather', <WeatherPage />)} />
+          <Route path="/map" element={withFeatureBoundary('Map', <MapPage />)} />
           <Route path="/settings" element={withFeatureBoundary('Settings', <SettingsPage />)} />
         </Route>
       </Routes>

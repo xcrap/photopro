@@ -23,12 +23,16 @@ struct SunTimes: Sendable {
     var sunrise: Date?
     var sunset: Date?
     var solarNoon: Date?
+    /// Evening golden hour: +6° → −4°.
     var goldenHourStart: Date?
     var goldenHourEnd: Date?
+    /// Morning golden hour: −4° → +6°.
     var goldenHourMorningStart: Date?
     var goldenHourMorningEnd: Date?
+    /// Morning blue hour: −6° (civil dawn) → −4°.
     var blueHourMorningStart: Date?
     var blueHourMorningEnd: Date?
+    /// Evening blue hour: −4° → −6° (civil dusk).
     var blueHourEveningStart: Date?
     var blueHourEveningEnd: Date?
     var dawn: Date?

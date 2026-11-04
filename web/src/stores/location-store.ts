@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { SavedLocation } from '@/types'
 import { getLocationKey } from '@/lib/weather/cache'
+import { timeZoneAt } from '@/lib/time/zone'
 
 export type GpsStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'error'
 
@@ -22,7 +23,7 @@ interface LocationState {
 
 interface LocationActions {
   setLocation: (lat: number, lon: number, name?: string | null, timeZone?: string | null) => void
-  /** Record the time zone reported for (lat, lon) if it is the current or a saved location. */
+  /** Fallback: record Open-Meteo's zone for (lat, lon) where the offline lookup found none. */
   learnTimeZone: (lat: number, lon: number, timeZone: string) => void
   setGpsEnabled: (enabled: boolean) => void
   setGpsStatus: (status: GpsStatus) => void
@@ -56,7 +57,8 @@ export const useLocationStore = create<LocationStore>()(
             latitude: lat,
             longitude: lon,
             name: name ?? null,
-            timeZone: timeZone ?? (sameLocation ? state.timeZone : null),
+            // Offline boundary lookup first; Open-Meteo's zone only fills gaps (ALGORITHM.md).
+            timeZone: timeZone ?? timeZoneAt(lat, lon) ?? (sameLocation ? state.timeZone : null),
           }
         }),
 
@@ -65,9 +67,9 @@ export const useLocationStore = create<LocationStore>()(
           const key = getLocationKey(lat, lon)
           const isCurrent = key === getLocationKey(state.latitude, state.longitude)
           return {
-            timeZone: isCurrent ? timeZone : state.timeZone,
+            timeZone: isCurrent && !state.timeZone ? timeZone : state.timeZone,
             savedLocations: state.savedLocations.map((loc) =>
-              getLocationKey(loc.latitude, loc.longitude) === key ? { ...loc, timeZone } : loc,
+              getLocationKey(loc.latitude, loc.longitude) === key && !loc.timeZone ? { ...loc, timeZone } : loc,
             ),
           }
         }),
@@ -85,7 +87,11 @@ export const useLocationStore = create<LocationStore>()(
         set((state) => ({
           savedLocations: [
             ...state.savedLocations,
-            { ...location, id: crypto.randomUUID() },
+            {
+              ...location,
+              timeZone: location.timeZone ?? timeZoneAt(location.latitude, location.longitude),
+              id: crypto.randomUUID(),
+            },
           ],
         })),
 
@@ -94,7 +100,11 @@ export const useLocationStore = create<LocationStore>()(
           savedLocations: state.savedLocations.map((loc) => {
             if (loc.id !== id) return loc
             const moved = getLocationKey(loc.latitude, loc.longitude) !== getLocationKey(location.latitude, location.longitude)
-            return { ...location, id, timeZone: moved ? null : loc.timeZone ?? null }
+            return {
+              ...location,
+              id,
+              timeZone: moved ? timeZoneAt(location.latitude, location.longitude) : loc.timeZone ?? null,
+            }
           }),
         })),
 

@@ -37,6 +37,8 @@ struct SunCurrentTab: View {
             }
             .surfaceCard(accent: Theme.sunAccent)
 
+            TerrainHorizonCard(date: selectedDate)
+
             // Photography Hours
             VStack(alignment: .leading, spacing: 0) {
                 Label("Photography Hours", systemImage: "camera.fill")

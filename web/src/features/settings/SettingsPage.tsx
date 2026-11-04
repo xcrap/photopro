@@ -35,6 +35,7 @@ import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useTimeZone } from '@/hooks/useTimeZone'
+import { PlaceSearch } from '@/components/shared/PlaceSearch'
 import type { TimeFormat } from '@/types'
 
 function normalizeCoordinateInput(value: string): string {
@@ -243,6 +244,21 @@ export function SettingsPage() {
               {latitude.toFixed(4)}, {longitude.toFixed(4)}
             </p>
             <p className="text-xs text-muted-foreground">Times shown in {timeZone}</p>
+          </div>
+
+          {/* Place search */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Search</p>
+            <PlaceSearch
+              onSelect={(place) => {
+                setGpsEnabled(false)
+                setGpsStatus('idle')
+                setLocation(place.latitude, place.longitude, place.name, place.timeZone)
+                setManualLat(place.latitude.toFixed(4))
+                setManualLon(place.longitude.toFixed(4))
+                setManualError(null)
+              }}
+            />
           </div>
 
           {/* Manual Coordinates */}

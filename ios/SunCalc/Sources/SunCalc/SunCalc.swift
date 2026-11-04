@@ -26,6 +26,10 @@ public class SunCalc {
 	public var nightEnd: Date?
 	public var nauticalDawn: Date?
 	public var dawn: Date?
+	/// Sun at −4° rising (end of the morning blue hour, start of the morning golden hour).
+	public var blueHourEnd: Date?
+	/// Sun at −4° setting (end of the evening golden hour, start of the evening blue hour).
+	public var blueHour: Date?
 
 	// swiftlint:disable:next function_parameter_count
 	class func getSetJ(h: Double, phi: Double, dec: Double, lw: Double, n: Double, M: Double, L: Double) -> Double {
@@ -245,6 +249,13 @@ public class SunCalc {
 		Jrise = Jnoon - (Jset - Jnoon)
         self.goldenHourEnd = DateUtils.fromJulian(j: Jrise)
         self.goldenHour = DateUtils.fromJulian(j: Jset)
+
+		// Photographers' light: blue hour −6°…−4°, golden hour −4°…+6° (JS: addTime(-4, 'blueHourEnd', 'blueHour'))
+		h = -4
+        Jset = SunCalc.getSetJ(h: h * Constants.RAD(), phi: phi, dec: dec, lw: lw, n: n, M: M, L: L)
+		Jrise = Jnoon - (Jset - Jnoon)
+        self.blueHourEnd = DateUtils.fromJulian(j: Jrise)
+        self.blueHour = DateUtils.fromJulian(j: Jset)
 
 	}
 }
