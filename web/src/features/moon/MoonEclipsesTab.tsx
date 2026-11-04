@@ -4,12 +4,14 @@ import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { useLocationStore } from '@/stores/location-store'
 import { getUpcomingEclipses, getVisibilityForLocation } from '@/lib/astronomy/eclipse-calculator'
-import { formatDate } from '@/lib/formatting'
+import { formatDate, formatTime } from '@/lib/formatting'
+import { useSettingsStore } from '@/stores/settings-store'
 import lunarEclipsesData from '@/data/lunar-eclipses.json'
 import type { EclipseEvent } from '@/types'
 
 interface MoonEclipsesTabProps {
   yearsRange: number
+  timeZone: string
 }
 
 const typeColors: Record<string, string> = {
@@ -19,8 +21,10 @@ const typeColors: Record<string, string> = {
   penumbral: 'text-zinc-400',
 }
 
-export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
-  const { latitude, longitude } = useLocationStore()
+export function MoonEclipsesTab({ yearsRange, timeZone }: MoonEclipsesTabProps) {
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
+  const { timeFormat } = useSettingsStore()
   const [visibleOnly, setVisibleOnly] = useState(true)
 
   const eclipses = useMemo(() => {
@@ -71,15 +75,15 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
             : `No lunar eclipses in the next ${yearsRange} year${yearsRange > 1 ? 's' : ''}`}
         </p>
       ) : (
-        filteredEclipses.map(({ eclipse, visibility }, i) => (
+        filteredEclipses.map(({ eclipse, visibility }) => (
           <div
-            key={i}
+            key={eclipse.date.toISOString()}
             className="surface"
           >
               {/* Header */}
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="text-base font-semibold tracking-tight text-foreground">
-                  {formatDate(eclipse.date)}
+                  {formatDate(eclipse.date, timeZone)}
                 </h3>
                 <span className={`text-xs font-semibold uppercase tracking-wider ${typeColors[eclipse.type] || 'text-foreground/60'}`}>
                   {eclipse.type}
@@ -87,7 +91,7 @@ export function MoonEclipsesTab({ yearsRange }: MoonEclipsesTabProps) {
               </div>
 
               <p className="mt-1 text-sm text-foreground/60">
-                <span className="capitalize">{eclipse.type}</span> Lunar Eclipse · Peak {eclipse.peakTime}
+                <span className="capitalize">{eclipse.type}</span> Lunar Eclipse · Peak {formatTime(eclipse.date, timeFormat, timeZone)}
               </p>
 
               <p className="mt-2 text-sm leading-relaxed text-foreground/50">{eclipse.description}</p>

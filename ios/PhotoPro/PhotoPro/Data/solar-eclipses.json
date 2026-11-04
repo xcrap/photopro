@@ -166,59 +166,224 @@
     ]
   },
   {
-    "date": "2027-02-06T15:58:00Z",
+    "date": "2027-02-06T16:00:00Z",
     "type": "annular",
     "category": "solar",
     "duration": "7m 51s",
     "magnitude": 0.928,
-    "peakTime": "15:58 UTC",
-    "description": "Annular solar eclipse crossing South America and Africa",
+    "peakTime": "16:00 UTC",
+    "description": "Annular solar eclipse crossing southern Chile, Argentina and Uruguay, ending at sunset over the Gulf of Guinea coast (Ivory Coast to Nigeria); partial across most of South America and western Africa",
     "visibility": [
       {
-        "region": "South America",
-        "bounds": { "latMin": -35, "latMax": 5, "lonMin": -76, "lonMax": -34 },
+        "region": "Annular path: Chilean & Argentine Patagonia",
+        "bounds": { "latMin": -46, "latMax": -39, "lonMin": -76, "lonMax": -60 },
+        "percentage": 85
+      },
+      {
+        "region": "Annular path: Buenos Aires Province & Uruguay",
+        "bounds": { "latMin": -39, "latMax": -33, "lonMin": -64, "lonMax": -52 },
+        "percentage": 84
+      },
+      {
+        "region": "Central Chile & central Argentina",
+        "bounds": { "latMin": -39, "latMax": -30, "lonMin": -76, "lonMax": -64 },
+        "percentage": 62
+      },
+      {
+        "region": "Northern Chile & northwestern Argentina",
+        "bounds": { "latMin": -30, "latMax": -22, "lonMin": -76, "lonMax": -64 },
+        "percentage": 38
+      },
+      {
+        "region": "Southern Brazil & Paraguay",
+        "bounds": { "latMin": -33, "latMax": -18, "lonMin": -64, "lonMax": -38 },
+        "percentage": 70
+      },
+      {
+        "region": "Northeastern Brazil",
+        "bounds": { "latMin": -18, "latMax": -2, "lonMin": -50, "lonMax": -34 },
+        "percentage": 60
+      },
+      {
+        "region": "Amazon & Bolivia",
+        "bounds": { "latMin": -18, "latMax": 0, "lonMin": -72, "lonMax": -46 },
+        "percentage": 20
+      },
+      {
+        "region": "Tierra del Fuego & Falkland Islands",
+        "bounds": { "latMin": -58, "latMax": -46, "lonMin": -76, "lonMax": -55 },
+        "percentage": 60
+      },
+      {
+        "region": "Gulf of Guinea coast (annular at sunset)",
+        "bounds": { "latMin": 3, "latMax": 8, "lonMin": -8, "lonMax": 5 },
         "percentage": 80
       },
       {
         "region": "West Africa",
         "bounds": { "latMin": 0, "latMax": 20, "lonMin": -18, "lonMax": 15 },
-        "percentage": 90
+        "percentage": 45
       },
       {
-        "region": "Central Africa",
-        "bounds": { "latMin": -10, "latMax": 15, "lonMin": 10, "lonMax": 35 },
-        "percentage": 70
+        "region": "Angola, Congo & Gabon (at sunset)",
+        "bounds": { "latMin": -15, "latMax": 0, "lonMin": 5, "lonMax": 20 },
+        "percentage": 40
+      },
+      {
+        "region": "Southern Africa (at sunset)",
+        "bounds": { "latMin": -30, "latMax": -15, "lonMin": 10, "lonMax": 30 },
+        "percentage": 10
+      },
+      {
+        "region": "Canary Islands & Morocco",
+        "bounds": { "latMin": 27, "latMax": 34, "lonMin": -18, "lonMax": -5 },
+        "percentage": 7
       }
     ]
   },
   {
-    "date": "2027-08-02T10:06:00Z",
+    "date": "2027-08-02T10:07:00Z",
     "type": "total",
     "category": "solar",
     "duration": "6m 23s",
     "magnitude": 1.079,
-    "peakTime": "10:06 UTC",
-    "description": "Total solar eclipse crossing North Africa, the Middle East, and Asia",
+    "peakTime": "10:07 UTC",
+    "description": "Total solar eclipse (up to 6m 23s) crossing southern Spain, Gibraltar, northern Morocco, Algeria, Tunisia, Libya, Egypt, Saudi Arabia, Yemen and Somalia; deep partial across Portugal, Europe, Africa, the Middle East and South Asia",
     "visibility": [
       {
-        "region": "North Africa",
-        "bounds": { "latMin": 20, "latMax": 37, "lonMin": -10, "lonMax": 35 },
-        "percentage": 95
-      },
-      {
-        "region": "Middle East",
-        "bounds": { "latMin": 22, "latMax": 40, "lonMin": 35, "lonMax": 60 },
+        "region": "Totality: southern Spain, Gibraltar, northern Morocco, Algeria & Tunisia",
+        "bounds": { "latMin": 34.9, "latMax": 36.5, "lonMin": -7, "lonMax": 9 },
         "percentage": 100
       },
       {
-        "region": "South Asia",
-        "bounds": { "latMin": 8, "latMax": 35, "lonMin": 60, "lonMax": 92 },
+        "region": "Totality: Libya (Benghazi)",
+        "bounds": { "latMin": 31.5, "latMax": 33, "lonMin": 17.5, "lonMax": 21.5 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: Egypt (Luxor)",
+        "bounds": { "latMin": 25.1, "latMax": 26.7, "lonMin": 31.5, "lonMax": 33.8 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: Saudi Arabia (Jeddah, Mecca)",
+        "bounds": { "latMin": 20.6, "latMax": 21.8, "lonMin": 38.6, "lonMax": 40.3 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: Yemen (Sanaa)",
+        "bounds": { "latMin": 15.2, "latMax": 16.4, "lonMin": 44.1, "lonMax": 46 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: northern Somalia (Bosaso)",
+        "bounds": { "latMin": 10.8, "latMax": 12, "lonMin": 49, "lonMax": 51 },
+        "percentage": 100
+      },
+      {
+        "region": "Portugal, southern Spain & the Maghreb",
+        "bounds": { "latMin": 27, "latMax": 40.5, "lonMin": -10, "lonMax": 12 },
+        "percentage": 90
+      },
+      {
+        "region": "Sicily, Malta, southern Greece & Crete",
+        "bounds": { "latMin": 34, "latMax": 39, "lonMin": 12, "lonMax": 30 },
         "percentage": 85
       },
       {
-        "region": "Southeast Asia",
-        "bounds": { "latMin": -10, "latMax": 25, "lonMin": 95, "lonMax": 120 },
-        "percentage": 55
+        "region": "Libya, Egypt & northern Sudan",
+        "bounds": { "latMin": 20, "latMax": 34, "lonMin": 12, "lonMax": 36 },
+        "percentage": 90
+      },
+      {
+        "region": "Azores, Madeira & Canary Islands",
+        "bounds": { "latMin": 27, "latMax": 40, "lonMin": -32, "lonMax": -10 },
+        "percentage": 85
+      },
+      {
+        "region": "Northern Spain, France, Italy & the Balkans",
+        "bounds": { "latMin": 39, "latMax": 46, "lonMin": -10, "lonMax": 28 },
+        "percentage": 70
+      },
+      {
+        "region": "Central & Western Europe, British Isles",
+        "bounds": { "latMin": 46, "latMax": 54, "lonMin": -11, "lonMax": 32 },
+        "percentage": 42
+      },
+      {
+        "region": "Northern Europe, Iceland & western Russia",
+        "bounds": { "latMin": 54, "latMax": 67, "lonMin": -25, "lonMax": 42 },
+        "percentage": 15
+      },
+      {
+        "region": "Turkey",
+        "bounds": { "latMin": 37, "latMax": 42, "lonMin": 25, "lonMax": 42 },
+        "percentage": 58
+      },
+      {
+        "region": "The Levant & Iraq",
+        "bounds": { "latMin": 29, "latMax": 37, "lonMin": 34, "lonMax": 48 },
+        "percentage": 68
+      },
+      {
+        "region": "Western Arabia & Red Sea",
+        "bounds": { "latMin": 12, "latMax": 29, "lonMin": 36, "lonMax": 47 },
+        "percentage": 85
+      },
+      {
+        "region": "Gulf States & Oman",
+        "bounds": { "latMin": 12, "latMax": 29, "lonMin": 47, "lonMax": 60 },
+        "percentage": 58
+      },
+      {
+        "region": "Western Sahara, Mauritania, Mali & Niger",
+        "bounds": { "latMin": 18, "latMax": 27, "lonMin": -18, "lonMax": 12 },
+        "percentage": 60
+      },
+      {
+        "region": "Sahel & West Africa",
+        "bounds": { "latMin": 8, "latMax": 18, "lonMin": -18, "lonMax": 30 },
+        "percentage": 22
+      },
+      {
+        "region": "Sudan, Ethiopia, Eritrea & northern Somalia",
+        "bounds": { "latMin": 5, "latMax": 20, "lonMin": 30, "lonMax": 52 },
+        "percentage": 70
+      },
+      {
+        "region": "East Africa",
+        "bounds": { "latMin": -12, "latMax": 5, "lonMin": 28, "lonMax": 52 },
+        "percentage": 35
+      },
+      {
+        "region": "Iran, Afghanistan & the Caucasus",
+        "bounds": { "latMin": 30, "latMax": 42, "lonMin": 42, "lonMax": 75 },
+        "percentage": 20
+      },
+      {
+        "region": "Pakistan & India",
+        "bounds": { "latMin": 5, "latMax": 30, "lonMin": 60, "lonMax": 92 },
+        "percentage": 25
+      },
+      {
+        "region": "Sri Lanka, Maldives & Arabian Sea",
+        "bounds": { "latMin": -5, "latMax": 10, "lonMin": 52, "lonMax": 82 },
+        "percentage": 65
+      },
+      {
+        "region": "Southeast Asia (at sunset)",
+        "bounds": { "latMin": -6, "latMax": 20, "lonMin": 92, "lonMax": 106 },
+        "percentage": 15
+      },
+      {
+        "region": "Madagascar & Mascarene Islands",
+        "bounds": { "latMin": -27, "latMax": -12, "lonMin": 42, "lonMax": 60 },
+        "percentage": 20
+      },
+      {
+        "region": "Newfoundland & Nova Scotia (at sunrise)",
+        "bounds": { "latMin": 43, "latMax": 52, "lonMin": -66, "lonMax": -52 },
+        "percentage": 20
       }
     ]
   },
@@ -229,22 +394,122 @@
     "duration": "10m 27s",
     "magnitude": 0.921,
     "peakTime": "15:08 UTC",
-    "description": "Annular solar eclipse crossing South America and the Caribbean",
+    "description": "Annular solar eclipse crossing the Galapagos, Ecuador, Peru and northern Brazil, ending at sunset over Madeira, southern Portugal and southern Spain; partial across the Americas, western Europe and northwest Africa",
     "visibility": [
       {
-        "region": "South America",
-        "bounds": { "latMin": -20, "latMax": 12, "lonMin": -82, "lonMax": -34 },
-        "percentage": 85
+        "region": "Annular path: Ecuador, Peru & the Amazon",
+        "bounds": { "latMin": -6, "latMax": 1, "lonMin": -92, "lonMax": -44 },
+        "percentage": 80
       },
       {
-        "region": "Caribbean",
-        "bounds": { "latMin": 10, "latMax": 25, "lonMin": -85, "lonMax": -60 },
-        "percentage": 75
+        "region": "Colombia, Venezuela & the Guianas",
+        "bounds": { "latMin": 1, "latMax": 12, "lonMin": -80, "lonMax": -50 },
+        "percentage": 65
       },
       {
-        "region": "Central America",
-        "bounds": { "latMin": 7, "latMax": 18, "lonMin": -92, "lonMax": -77 },
-        "percentage": 55
+        "region": "Peru & Bolivia",
+        "bounds": { "latMin": -18, "latMax": -6, "lonMin": -82, "lonMax": -65 },
+        "percentage": 60
+      },
+      {
+        "region": "Brazil",
+        "bounds": { "latMin": -20, "latMax": -6, "lonMin": -65, "lonMax": -34 },
+        "percentage": 40
+      },
+      {
+        "region": "Northeastern Brazil coast",
+        "bounds": { "latMin": -8, "latMax": -2, "lonMin": -44, "lonMax": -34 },
+        "percentage": 40
+      },
+      {
+        "region": "Southern Brazil, Paraguay, Argentina & Chile",
+        "bounds": { "latMin": -35, "latMax": -20, "lonMin": -75, "lonMax": -40 },
+        "percentage": 12
+      },
+      {
+        "region": "Central America & the Caribbean",
+        "bounds": { "latMin": 7, "latMax": 25, "lonMin": -95, "lonMax": -58 },
+        "percentage": 40
+      },
+      {
+        "region": "Mexico",
+        "bounds": { "latMin": 14, "latMax": 30, "lonMin": -118, "lonMax": -95 },
+        "percentage": 30
+      },
+      {
+        "region": "Southern & eastern United States",
+        "bounds": { "latMin": 25, "latMax": 45, "lonMin": -105, "lonMax": -65 },
+        "percentage": 8
+      },
+      {
+        "region": "Annular at sunset: southern Portugal & Spain",
+        "bounds": { "latMin": 36, "latMax": 39.6, "lonMin": -10, "lonMax": 3.5 },
+        "percentage": 82
+      },
+      {
+        "region": "Madeira & Canary Islands",
+        "bounds": { "latMin": 27, "latMax": 34, "lonMin": -19, "lonMax": -13 },
+        "percentage": 80
+      },
+      {
+        "region": "Azores",
+        "bounds": { "latMin": 36, "latMax": 40, "lonMin": -32, "lonMax": -24 },
+        "percentage": 60
+      },
+      {
+        "region": "Portugal, Spain, Morocco & southwest France",
+        "bounds": { "latMin": 30, "latMax": 45, "lonMin": -10, "lonMax": 4 },
+        "percentage": 78
+      },
+      {
+        "region": "France",
+        "bounds": { "latMin": 43, "latMax": 49, "lonMin": -5, "lonMax": 6 },
+        "percentage": 52
+      },
+      {
+        "region": "British Isles",
+        "bounds": { "latMin": 49, "latMax": 60, "lonMin": -11, "lonMax": 2 },
+        "percentage": 45
+      },
+      {
+        "region": "Benelux & Switzerland",
+        "bounds": { "latMin": 46, "latMax": 55, "lonMin": 3, "lonMax": 10 },
+        "percentage": 22
+      },
+      {
+        "region": "Italy, Malta & central Mediterranean",
+        "bounds": { "latMin": 35, "latMax": 46, "lonMin": 6, "lonMax": 18 },
+        "percentage": 22
+      },
+      {
+        "region": "Western Sahara, Mauritania & Senegal",
+        "bounds": { "latMin": 12, "latMax": 30, "lonMin": -18, "lonMax": -12 },
+        "percentage": 52
+      },
+      {
+        "region": "Mauritania (east), Mali (north) & Algeria (west)",
+        "bounds": { "latMin": 18, "latMax": 30, "lonMin": -12, "lonMax": -5 },
+        "percentage": 45
+      },
+      {
+        "region": "Algeria, Tunisia & Libya",
+        "bounds": { "latMin": 18, "latMax": 37.5, "lonMin": -5, "lonMax": 15 },
+        "percentage": 40
+      },
+      {
+        "region": "Sahel (Mali, Burkina Faso, Niger)",
+        "bounds": { "latMin": 10, "latMax": 18, "lonMin": -12, "lonMax": 15 },
+        "percentage": 15
+      },
+      {
+        "region": "Iceland",
+        "bounds": { "latMin": 63, "latMax": 67, "lonMin": -25, "lonMax": -13 },
+        "percentage": 15
+      },
+      {
+        "region": "Newfoundland",
+        "bounds": { "latMin": 46, "latMax": 52, "lonMin": -60, "lonMax": -52 },
+        "percentage": 10
       }
     ]
   },
@@ -255,22 +520,82 @@
     "duration": "5m 10s",
     "magnitude": 1.056,
     "peakTime": "02:55 UTC",
-    "description": "Total solar eclipse crossing Australia and New Zealand",
+    "description": "Total solar eclipse crossing Christmas Island, the Kimberley, the Northern Territory, Queensland, New South Wales (including Sydney) and the South Island of New Zealand; partial across Australia, New Zealand and Southeast Asia",
     "visibility": [
       {
-        "region": "Australia",
-        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
-        "percentage": 95
+        "region": "Totality: Kimberley (Wyndham, Kununurra)",
+        "bounds": { "latMin": -16.5, "latMax": -14.5, "lonMin": 125, "lonMax": 129.5 },
+        "percentage": 100
       },
       {
-        "region": "New Zealand",
-        "bounds": { "latMin": -48, "latMax": -34, "lonMin": 166, "lonMax": 179 },
+        "region": "Totality: Sydney & Central West NSW",
+        "bounds": { "latMin": -34.6, "latMax": -32.2, "lonMin": 148.5, "lonMax": 151.4 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: Queenstown & Dunedin (South Island)",
+        "bounds": { "latMin": -46.2, "latMax": -44.6, "lonMin": 167.5, "lonMax": 171 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: Christmas Island",
+        "bounds": { "latMin": -11, "latMax": -10, "lonMin": 105, "lonMax": 106.5 },
+        "percentage": 100
+      },
+      {
+        "region": "Northern & central Australia",
+        "bounds": { "latMin": -26, "latMax": -11, "lonMin": 113, "lonMax": 154 },
         "percentage": 85
       },
       {
-        "region": "Southeast Asia",
-        "bounds": { "latMin": -10, "latMax": 10, "lonMin": 100, "lonMax": 130 },
-        "percentage": 40
+        "region": "Southeastern Australia",
+        "bounds": { "latMin": -39, "latMax": -26, "lonMin": 135, "lonMax": 154 },
+        "percentage": 85
+      },
+      {
+        "region": "Western & South Australia",
+        "bounds": { "latMin": -39, "latMax": -26, "lonMin": 113, "lonMax": 135 },
+        "percentage": 55
+      },
+      {
+        "region": "Tasmania",
+        "bounds": { "latMin": -44, "latMax": -39, "lonMin": 143, "lonMax": 149 },
+        "percentage": 72
+      },
+      {
+        "region": "New Zealand",
+        "bounds": { "latMin": -48, "latMax": -34, "lonMin": 165, "lonMax": 179 },
+        "percentage": 85
+      },
+      {
+        "region": "Java, Bali & Nusa Tenggara",
+        "bounds": { "latMin": -11, "latMax": -5, "lonMin": 105, "lonMax": 125 },
+        "percentage": 92
+      },
+      {
+        "region": "Sumatra, Borneo & Sulawesi",
+        "bounds": { "latMin": -5, "latMax": 6, "lonMin": 95, "lonMax": 125 },
+        "percentage": 60
+      },
+      {
+        "region": "Papua New Guinea & eastern Indonesia",
+        "bounds": { "latMin": -11, "latMax": 0, "lonMin": 125, "lonMax": 155 },
+        "percentage": 55
+      },
+      {
+        "region": "Mainland Southeast Asia & the Philippines",
+        "bounds": { "latMin": 6, "latMax": 20, "lonMin": 95, "lonMax": 125 },
+        "percentage": 15
+      },
+      {
+        "region": "Sri Lanka & Maldives",
+        "bounds": { "latMin": 0, "latMax": 10, "lonMin": 72, "lonMax": 82 },
+        "percentage": 20
+      },
+      {
+        "region": "New Caledonia, Vanuatu & Fiji",
+        "bounds": { "latMin": -25, "latMax": -12, "lonMin": 160, "lonMax": 180 },
+        "percentage": 25
       }
     ]
   },
@@ -278,20 +603,65 @@
     "date": "2029-01-14T17:13:00Z",
     "type": "partial",
     "category": "solar",
-    "duration": "2h 30m",
+    "duration": "4h 21m",
     "magnitude": 0.87,
     "peakTime": "17:13 UTC",
-    "description": "Partial solar eclipse visible from North America and Central America",
+    "description": "Partial solar eclipse visible across North America and northern Central America, deepest in western Canada",
     "visibility": [
       {
-        "region": "North America",
-        "bounds": { "latMin": 25, "latMax": 70, "lonMin": -140, "lonMax": -60 },
-        "percentage": 80
+        "region": "Alberta, Saskatchewan & interior BC",
+        "bounds": { "latMin": 48, "latMax": 62, "lonMin": -125, "lonMax": -100 },
+        "percentage": 78
       },
       {
-        "region": "Central America",
-        "bounds": { "latMin": 7, "latMax": 18, "lonMin": -92, "lonMax": -77 },
-        "percentage": 55
+        "region": "Northwest Territories & western Nunavut",
+        "bounds": { "latMin": 62, "latMax": 66, "lonMin": -118, "lonMax": -95 },
+        "percentage": 75
+      },
+      {
+        "region": "BC coast & Alaska Panhandle (at sunrise)",
+        "bounds": { "latMin": 48, "latMax": 60, "lonMin": -136, "lonMax": -125 },
+        "percentage": 40
+      },
+      {
+        "region": "Manitoba, Ontario, Quebec & Hudson Bay",
+        "bounds": { "latMin": 48, "latMax": 66, "lonMin": -100, "lonMax": -65 },
+        "percentage": 65
+      },
+      {
+        "region": "Atlantic Canada & southern Greenland",
+        "bounds": { "latMin": 44, "latMax": 66, "lonMin": -65, "lonMax": -40 },
+        "percentage": 40
+      },
+      {
+        "region": "Western United States",
+        "bounds": { "latMin": 30, "latMax": 48, "lonMin": -125, "lonMax": -100 },
+        "percentage": 60
+      },
+      {
+        "region": "Northern Plains & Great Lakes",
+        "bounds": { "latMin": 40, "latMax": 48, "lonMin": -100, "lonMax": -80 },
+        "percentage": 60
+      },
+      {
+        "region": "Northeastern US & southern Quebec",
+        "bounds": { "latMin": 40, "latMax": 48, "lonMin": -80, "lonMax": -65 },
+        "percentage": 43
+      },
+      {
+        "region": "Southern & eastern United States",
+        "bounds": { "latMin": 29, "latMax": 40, "lonMin": -100, "lonMax": -70 },
+        "percentage": 42
+      },
+      {
+        "region": "Mexico, Florida & Cuba",
+        "bounds": { "latMin": 15, "latMax": 29, "lonMin": -118, "lonMax": -78 },
+        "percentage": 28
+      },
+      {
+        "region": "Central America & Greater Antilles",
+        "bounds": { "latMin": 9, "latMax": 20, "lonMin": -95, "lonMax": -68 },
+        "percentage": 8
       }
     ]
   },
@@ -299,56 +669,112 @@
     "date": "2029-06-12T04:05:00Z",
     "type": "partial",
     "category": "solar",
-    "duration": "1h 50m",
+    "duration": "3h 17m",
     "magnitude": 0.46,
     "peakTime": "04:05 UTC",
-    "description": "Partial solar eclipse visible from Arctic regions",
+    "description": "Partial solar eclipse visible from the Arctic, northern Canada, Alaska, Greenland, Iceland, Scandinavia and northern Russia",
     "visibility": [
       {
-        "region": "Arctic",
-        "bounds": { "latMin": 60, "latMax": 90, "lonMin": -30, "lonMax": 90 },
-        "percentage": 75
+        "region": "Arctic Canada, Greenland & Svalbard",
+        "bounds": { "latMin": 68, "latMax": 90, "lonMin": -140, "lonMax": 30 },
+        "percentage": 28
       },
       {
-        "region": "Northern Scandinavia",
-        "bounds": { "latMin": 60, "latMax": 72, "lonMin": 5, "lonMax": 35 },
-        "percentage": 55
+        "region": "Siberian Arctic",
+        "bounds": { "latMin": 72, "latMax": 90, "lonMin": 30, "lonMax": -140 },
+        "percentage": 10
       },
       {
-        "region": "Northern Russia",
-        "bounds": { "latMin": 60, "latMax": 78, "lonMin": 30, "lonMax": 90 },
-        "percentage": 50
+        "region": "Alaska, Yukon & Northwest Territories",
+        "bounds": { "latMin": 55, "latMax": 72, "lonMin": -170, "lonMax": -105 },
+        "percentage": 18
+      },
+      {
+        "region": "Iceland (at sunrise)",
+        "bounds": { "latMin": 63, "latMax": 67, "lonMin": -25, "lonMax": -13 },
+        "percentage": 27
+      },
+      {
+        "region": "Scandinavia, Finland & Kola Peninsula",
+        "bounds": { "latMin": 58, "latMax": 71, "lonMin": 4, "lonMax": 35 },
+        "percentage": 14
+      },
+      {
+        "region": "Northern & central Europe (at sunrise)",
+        "bounds": { "latMin": 49, "latMax": 58, "lonMin": 5, "lonMax": 30 },
+        "percentage": 6
       }
     ]
   },
   {
     "date": "2029-07-11T15:36:00Z",
-    "type": "total",
+    "type": "partial",
     "category": "solar",
-    "duration": "3m 26s",
-    "magnitude": 1.041,
+    "duration": "2h 16m",
+    "magnitude": 0.23,
     "peakTime": "15:36 UTC",
-    "description": "Total solar eclipse crossing North America and the Caribbean",
+    "description": "Small partial solar eclipse visible from southern Chile, southern Argentina and the Antarctic Peninsula",
     "visibility": [
       {
-        "region": "United States",
-        "bounds": { "latMin": 25, "latMax": 49, "lonMin": -125, "lonMax": -66 },
-        "percentage": 85
+        "region": "Tierra del Fuego & southern Patagonia",
+        "bounds": { "latMin": -56, "latMax": -48, "lonMin": -76, "lonMax": -64 },
+        "percentage": 8
       },
       {
-        "region": "Caribbean",
-        "bounds": { "latMin": 10, "latMax": 25, "lonMin": -85, "lonMax": -60 },
-        "percentage": 70
+        "region": "Northern Patagonia (Chile & Argentina)",
+        "bounds": { "latMin": -48, "latMax": -40, "lonMin": -76, "lonMax": -62 },
+        "percentage": 4
       },
       {
-        "region": "Canada",
-        "bounds": { "latMin": 42, "latMax": 70, "lonMin": -140, "lonMax": -52 },
-        "percentage": 50
+        "region": "Falkland Islands",
+        "bounds": { "latMin": -53, "latMax": -51, "lonMin": -62, "lonMax": -57 },
+        "percentage": 4
       },
       {
-        "region": "Mexico",
-        "bounds": { "latMin": 14, "latMax": 33, "lonMin": -118, "lonMax": -86 },
-        "percentage": 60
+        "region": "Antarctic Peninsula",
+        "bounds": { "latMin": -70, "latMax": -60, "lonMin": -80, "lonMax": -55 },
+        "percentage": 11
+      }
+    ]
+  },
+  {
+    "date": "2029-12-05T15:03:00Z",
+    "type": "partial",
+    "category": "solar",
+    "duration": "3h 52m",
+    "magnitude": 0.89,
+    "peakTime": "15:03 UTC",
+    "description": "Partial solar eclipse visible mainly from Antarctica; only a slight partial reaches Tierra del Fuego (southern Chile and Argentina)",
+    "visibility": [
+      {
+        "region": "East Antarctica & Ross Sea",
+        "bounds": { "latMin": -80, "latMax": -62, "lonMin": 90, "lonMax": 180 },
+        "percentage": 80
+      },
+      {
+        "region": "Antarctic interior",
+        "bounds": { "latMin": -90, "latMax": -75, "lonMin": -180, "lonMax": 180 },
+        "percentage": 65
+      },
+      {
+        "region": "West Antarctica & Amundsen Sea",
+        "bounds": { "latMin": -75, "latMax": -55, "lonMin": -180, "lonMax": -80 },
+        "percentage": 35
+      },
+      {
+        "region": "Antarctic Peninsula & Weddell Sea",
+        "bounds": { "latMin": -75, "latMax": -60, "lonMin": -80, "lonMax": 0 },
+        "percentage": 22
+      },
+      {
+        "region": "Dronning Maud Land",
+        "bounds": { "latMin": -75, "latMax": -62, "lonMin": 0, "lonMax": 90 },
+        "percentage": 55
+      },
+      {
+        "region": "Tierra del Fuego",
+        "bounds": { "latMin": -56, "latMax": -53, "lonMin": -72, "lonMax": -64 },
+        "percentage": 2
       }
     ]
   },
@@ -359,27 +785,132 @@
     "duration": "5m 21s",
     "magnitude": 0.944,
     "peakTime": "06:28 UTC",
-    "description": "Annular solar eclipse crossing North Africa, Europe, and Asia",
+    "description": "Annular solar eclipse crossing Algeria, Tunisia, Greece, Turkey, southern Russia, Kazakhstan, Siberia, northern China and Hokkaido; partial across Europe, North Africa, the Middle East and Asia",
     "visibility": [
       {
-        "region": "North Africa",
-        "bounds": { "latMin": 20, "latMax": 37, "lonMin": -10, "lonMax": 35 },
-        "percentage": 95
+        "region": "Annular path: Algeria, Tunisia & Greece",
+        "bounds": { "latMin": 29, "latMax": 40, "lonMin": 0, "lonMax": 25 },
+        "percentage": 82
       },
       {
-        "region": "Southern Europe",
-        "bounds": { "latMin": 36, "latMax": 48, "lonMin": -10, "lonMax": 30 },
+        "region": "Annular path: Turkey, Black Sea & southern Russia",
+        "bounds": { "latMin": 38, "latMax": 50, "lonMin": 25, "lonMax": 50 },
+        "percentage": 84
+      },
+      {
+        "region": "Annular path: Kazakhstan & western Siberia",
+        "bounds": { "latMin": 48, "latMax": 60, "lonMin": 50, "lonMax": 95 },
+        "percentage": 83
+      },
+      {
+        "region": "Annular path: Siberia, northern China & Russian Far East",
+        "bounds": { "latMin": 42, "latMax": 58, "lonMin": 95, "lonMax": 145 },
         "percentage": 80
       },
       {
-        "region": "Central Asia",
-        "bounds": { "latMin": 30, "latMax": 50, "lonMin": 50, "lonMax": 90 },
-        "percentage": 70
+        "region": "Annular path: Hokkaido & northern Japan",
+        "bounds": { "latMin": 38, "latMax": 46, "lonMin": 138, "lonMax": 146 },
+        "percentage": 86
       },
       {
-        "region": "East Asia",
-        "bounds": { "latMin": 25, "latMax": 45, "lonMin": 100, "lonMax": 145 },
+        "region": "Central & southern Japan, Korea",
+        "bounds": { "latMin": 30, "latMax": 38, "lonMin": 125, "lonMax": 146 },
+        "percentage": 65
+      },
+      {
+        "region": "Italy & the Balkans",
+        "bounds": { "latMin": 38, "latMax": 46, "lonMin": 4, "lonMax": 25 },
+        "percentage": 75
+      },
+      {
+        "region": "Iberia",
+        "bounds": { "latMin": 35, "latMax": 44, "lonMin": -10, "lonMax": 4 },
+        "percentage": 62
+      },
+      {
+        "region": "Morocco & western Algeria",
+        "bounds": { "latMin": 30, "latMax": 36, "lonMin": -10, "lonMax": 0 },
+        "percentage": 45
+      },
+      {
+        "region": "Western & Central Europe",
+        "bounds": { "latMin": 44, "latMax": 56, "lonMin": -10, "lonMax": 25 },
         "percentage": 55
+      },
+      {
+        "region": "Northern Europe & British Isles",
+        "bounds": { "latMin": 56, "latMax": 72, "lonMin": -25, "lonMax": 40 },
+        "percentage": 42
+      },
+      {
+        "region": "Svalbard & Barents Sea",
+        "bounds": { "latMin": 72, "latMax": 90, "lonMin": -20, "lonMax": 60 },
+        "percentage": 28
+      },
+      {
+        "region": "Eastern Europe & European Russia",
+        "bounds": { "latMin": 50, "latMax": 62, "lonMin": 25, "lonMax": 60 },
+        "percentage": 72
+      },
+      {
+        "region": "Middle East",
+        "bounds": { "latMin": 27, "latMax": 38, "lonMin": 30, "lonMax": 60 },
+        "percentage": 50
+      },
+      {
+        "region": "Arabian Peninsula",
+        "bounds": { "latMin": 12, "latMax": 27, "lonMin": 35, "lonMax": 60 },
+        "percentage": 20
+      },
+      {
+        "region": "Central Asia",
+        "bounds": { "latMin": 35, "latMax": 48, "lonMin": 50, "lonMax": 95 },
+        "percentage": 50
+      },
+      {
+        "region": "Afghanistan, Pakistan & northern India",
+        "bounds": { "latMin": 22, "latMax": 35, "lonMin": 60, "lonMax": 85 },
+        "percentage": 15
+      },
+      {
+        "region": "Northern & eastern China",
+        "bounds": { "latMin": 30, "latMax": 42, "lonMin": 95, "lonMax": 125 },
+        "percentage": 55
+      },
+      {
+        "region": "Southern China",
+        "bounds": { "latMin": 18, "latMax": 30, "lonMin": 100, "lonMax": 125 },
+        "percentage": 12
+      },
+      {
+        "region": "Arctic & northern Siberia",
+        "bounds": { "latMin": 60, "latMax": 80, "lonMin": 60, "lonMax": 140 },
+        "percentage": 58
+      },
+      {
+        "region": "Chukotka & northeast Siberia",
+        "bounds": { "latMin": 60, "latMax": 75, "lonMin": 140, "lonMax": 180 },
+        "percentage": 38
+      },
+      {
+        "region": "Sea of Okhotsk, Kamchatka & Magadan",
+        "bounds": { "latMin": 46, "latMax": 60, "lonMin": 145, "lonMax": 170 },
+        "percentage": 58
+      },
+      {
+        "region": "Western Alaska & Bering Sea",
+        "bounds": { "latMin": 55, "latMax": 70, "lonMin": -180, "lonMax": -145 },
+        "percentage": 25
+      },
+      {
+        "region": "Arctic Ocean & northern Greenland",
+        "bounds": { "latMin": 70, "latMax": 90, "lonMin": -180, "lonMax": -20 },
+        "percentage": 18
+      },
+      {
+        "region": "Sahara & Sahel",
+        "bounds": { "latMin": 12, "latMax": 29, "lonMin": 5, "lonMax": 35 },
+        "percentage": 40
       }
     ]
   },
@@ -390,27 +921,87 @@
     "duration": "3m 44s",
     "magnitude": 1.047,
     "peakTime": "06:50 UTC",
-    "description": "Total solar eclipse crossing southern Africa and Australia",
+    "description": "Total solar eclipse crossing Namibia, Botswana and South Africa (including Durban), then South Australia, New South Wales and Queensland at sunset; partial across southern Africa, the Indian Ocean and Australia",
     "visibility": [
       {
-        "region": "South Africa",
-        "bounds": { "latMin": -35, "latMax": -22, "lonMin": 16, "lonMax": 33 },
-        "percentage": 95
+        "region": "Totality: central Namibia (Windhoek)",
+        "bounds": { "latMin": -23.9, "latMax": -22.3, "lonMin": 15.5, "lonMax": 19.5 },
+        "percentage": 100
       },
       {
-        "region": "Southern Africa",
-        "bounds": { "latMin": -35, "latMax": -10, "lonMin": 10, "lonMax": 52 },
+        "region": "Totality: North West province & Free State",
+        "bounds": { "latMin": -27, "latMax": -26, "lonMin": 23.5, "lonMax": 26.5 },
+        "percentage": 100
+      },
+      {
+        "region": "Totality: KwaZulu-Natal (Pietermaritzburg, Durban)",
+        "bounds": { "latMin": -30.2, "latMax": -28.9, "lonMin": 29.5, "lonMax": 31.5 },
+        "percentage": 100
+      },
+      {
+        "region": "Namibia, Botswana, South Africa & Lesotho",
+        "bounds": { "latMin": -35, "latMax": -20, "lonMin": 10, "lonMax": 33 },
+        "percentage": 90
+      },
+      {
+        "region": "Southern Angola & western Zambia",
+        "bounds": { "latMin": -20, "latMax": -10, "lonMin": 10, "lonMax": 25 },
         "percentage": 80
       },
       {
-        "region": "Australia",
-        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 110, "lonMax": 155 },
-        "percentage": 85
+        "region": "Zimbabwe, Mozambique & Malawi",
+        "bounds": { "latMin": -20, "latMax": -10, "lonMin": 25, "lonMax": 41 },
+        "percentage": 60
       },
       {
-        "region": "Indian Ocean",
-        "bounds": { "latMin": -45, "latMax": -10, "lonMin": 50, "lonMax": 110 },
-        "percentage": 60
+        "region": "Angola, DR Congo & Gabon",
+        "bounds": { "latMin": -10, "latMax": 0, "lonMin": 5, "lonMax": 25 },
+        "percentage": 50
+      },
+      {
+        "region": "East Africa",
+        "bounds": { "latMin": -10, "latMax": 0, "lonMin": 25, "lonMax": 45 },
+        "percentage": 20
+      },
+      {
+        "region": "Madagascar & Mascarene Islands",
+        "bounds": { "latMin": -26, "latMax": -12, "lonMin": 43, "lonMax": 60 },
+        "percentage": 40
+      },
+      {
+        "region": "South Australia, NSW & southern Queensland (near sunset)",
+        "bounds": { "latMin": -35.5, "latMax": -26, "lonMin": 132, "lonMax": 150 },
+        "percentage": 95
+      },
+      {
+        "region": "Southern Queensland coast (at sunset)",
+        "bounds": { "latMin": -30, "latMax": -26, "lonMin": 150, "lonMax": 154 },
+        "percentage": 90
+      },
+      {
+        "region": "Victoria, Tasmania & coastal NSW",
+        "bounds": { "latMin": -44, "latMax": -32, "lonMin": 140, "lonMax": 154 },
+        "percentage": 75
+      },
+      {
+        "region": "Southwestern Australia",
+        "bounds": { "latMin": -36, "latMax": -28, "lonMin": 112, "lonMax": 132 },
+        "percentage": 80
+      },
+      {
+        "region": "Central Australia",
+        "bounds": { "latMin": -26, "latMax": -19, "lonMin": 112, "lonMax": 154 },
+        "percentage": 65
+      },
+      {
+        "region": "Northern Australia",
+        "bounds": { "latMin": -19, "latMax": -10, "lonMin": 112, "lonMax": 154 },
+        "percentage": 40
+      },
+      {
+        "region": "Southern New Zealand (at sunset)",
+        "bounds": { "latMin": -47, "latMax": -42.5, "lonMin": 166, "lonMax": 175 },
+        "percentage": 25
       }
     ]
   }

@@ -1,11 +1,12 @@
-import { differenceInDays } from 'date-fns'
 import { Sparkles } from 'lucide-react'
 import { formatDate } from '@/lib/formatting'
 import { useCurrentTime } from '@/hooks/useCurrentTime'
+import { formatRelativeDays } from '@/lib/time/zone'
 import type { SpecialEvent } from '@/types'
 
 interface MoonSpecialTabProps {
   events: SpecialEvent[]
+  timeZone: string
 }
 
 const typeColors: Record<SpecialEvent['type'], string> = {
@@ -15,15 +16,8 @@ const typeColors: Record<SpecialEvent['type'], string> = {
   'black-moon': 'text-zinc-300',
 }
 
-export function MoonSpecialTab({ events }: MoonSpecialTabProps) {
+export function MoonSpecialTab({ events, timeZone }: MoonSpecialTabProps) {
   const now = useCurrentTime()
-
-  function daysUntil(date: Date) {
-    const days = differenceInDays(date, now)
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Tomorrow'
-    return `in ${days}d`
-  }
 
   return (
     <div className="space-y-3">
@@ -39,18 +33,18 @@ export function MoonSpecialTab({ events }: MoonSpecialTabProps) {
           No special moon events found
         </p>
       ) : (
-        events.map((event, i) => (
+        events.map((event) => (
           <div
-            key={i}
+            key={`${event.type}-${event.date.toISOString()}`}
             className="surface"
           >
               {/* Header: Date + Countdown */}
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="text-base font-semibold tracking-tight text-foreground">
-                  {formatDate(event.date)}
+                  {formatDate(event.date, timeZone)}
                 </h3>
                 <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-xs tabular-nums text-muted-foreground">
-                  {daysUntil(event.date)}
+                  {formatRelativeDays(event.date, now, timeZone)}
                 </span>
               </div>
 

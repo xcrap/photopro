@@ -1,166 +1,89 @@
-import SunCalc from 'suncalc'
-import { addDays, addMonths } from 'date-fns'
+import { addMonths } from 'date-fns'
 import type { SpecialEvent, FullMoonEvent } from '@/types'
+import { localMonthKey } from '@/lib/time/zone'
 import { findFullMoons } from './full-moon-finder'
+import { findMoonPhaseInstants } from './moon-ephemeris'
 
 /**
- * Average perigee distance of the moon in km.
- * A supermoon is typically defined as a full moon occurring within 90% of perigee.
- * We use a threshold of ~362,000 km as a practical cutoff.
- */
-const SUPERMOON_DISTANCE_THRESHOLD = 362000
-
-/**
- * Threshold for detecting a new moon (phase distance from 0).
- */
-const NEW_MOON_THRESHOLD = 0.02
-
-/**
- * Find new moons within a date range by iterating day by day.
- */
-function findNewMoons(startDate: Date, months: number): Date[] {
-  const endDate = addMonths(startDate, months)
-  const newMoons: Date[] = []
-
-  let currentDate = new Date(startDate)
-  let prevPhase = SunCalc.getMoonIllumination(currentDate).phase
-
-  while (currentDate < endDate) {
-    const nextDate = addDays(currentDate, 1)
-    const currentPhase = SunCalc.getMoonIllumination(nextDate).phase
-
-    // Detect new moon: phase near 0 (or near 1, since 0 and 1 are the same point)
-    const isNearNew = currentPhase < NEW_MOON_THRESHOLD || currentPhase > (1 - NEW_MOON_THRESHOLD)
-
-    // Also detect wrapping: phase went from high (>0.9) to low (<0.1)
-    const crossedNew = prevPhase > 0.9 && currentPhase < 0.1
-
-    if (isNearNew || crossedNew) {
-      // Avoid duplicate detections
-      const lastNewMoon = newMoons[newMoons.length - 1]
-      const daysSinceLast = lastNewMoon
-        ? (nextDate.getTime() - lastNewMoon.getTime()) / (1000 * 60 * 60 * 24)
-        : Infinity
-
-      if (daysSinceLast > 20) {
-        newMoons.push(nextDate)
-      }
-    }
-
-    prevPhase = currentPhase
-    currentDate = nextDate
-  }
-
-  return newMoons
-}
-
-/**
- * Detect supermoons from a list of full moon events.
- * A supermoon occurs when the full moon is near perigee (closest approach to Earth).
+ * Detect supermoons: full moons closer than 362,000 km (Meeus distance).
  */
 function findSupermoons(fullMoons: FullMoonEvent[]): SpecialEvent[] {
-  const events: SpecialEvent[] = []
+  return fullMoons
+    .filter((fullMoon) => fullMoon.isSupermoon)
+    .map((fullMoon) => ({
+      date: fullMoon.date,
+      type: 'supermoon' as const,
+      name: `Supermoon (${fullMoon.folkName})`,
+      description: `Full moon at ${Math.round(fullMoon.distance).toLocaleString('en-US')} km - appears ~7% larger and ~15% brighter than average`,
+    }))
+}
 
-  for (const fullMoon of fullMoons) {
-    const distance = fullMoon.distance
-    if (distance !== undefined && distance < SUPERMOON_DISTANCE_THRESHOLD) {
-      events.push({
-        date: fullMoon.date,
-        type: 'supermoon',
-        name: `Supermoon (${fullMoon.folkName})`,
-        description: `Full moon at ${Math.round(distance).toLocaleString()} km - appears ~7% larger and ~15% brighter than average`,
-      })
+/** Group instants by local calendar month and return the second of each month. */
+function secondInSameMonth<T>(items: T[], getDate: (item: T) => Date, timeZone: string): T[] {
+  const byMonth = new Map<string, T[]>()
+  for (const item of items) {
+    const key = localMonthKey(getDate(item), timeZone)
+    const group = byMonth.get(key)
+    if (group) {
+      group.push(item)
+    } else {
+      byMonth.set(key, [item])
     }
   }
 
-  return events
+  const seconds: T[] = []
+  for (const group of byMonth.values()) {
+    if (group.length >= 2) {
+      group.sort((a, b) => getDate(a).getTime() - getDate(b).getTime())
+      seconds.push(group[1])
+    }
+  }
+  return seconds
 }
 
 /**
- * Detect blue moons (2nd full moon in a calendar month).
+ * Detect blue moons (2nd full moon in a calendar month, location time zone).
  */
-function findBlueMoons(fullMoons: FullMoonEvent[]): SpecialEvent[] {
-  const events: SpecialEvent[] = []
-
-  // Group full moons by year-month
-  const byMonth = new Map<string, FullMoonEvent[]>()
-  for (const fm of fullMoons) {
-    const key = `${fm.date.getFullYear()}-${fm.date.getMonth()}`
-    const group = byMonth.get(key)
-    if (group) {
-      group.push(fm)
-    } else {
-      byMonth.set(key, [fm])
-    }
-  }
-
-  for (const group of byMonth.values()) {
-    if (group.length >= 2) {
-      // Sort by date within the month
-      group.sort((a, b) => a.date.getTime() - b.date.getTime())
-      const blueMoon = group[1] // Second full moon
-      events.push({
-        date: blueMoon.date,
-        type: 'blue-moon',
-        name: 'Blue Moon',
-        description: `Second full moon of the month (${blueMoon.folkName}) - a rare occurrence happening roughly every 2.7 years`,
-      })
-    }
-  }
-
-  return events
+function findBlueMoons(fullMoons: FullMoonEvent[], timeZone: string): SpecialEvent[] {
+  return secondInSameMonth(fullMoons, (fm) => fm.date, timeZone).map((blueMoon) => ({
+    date: blueMoon.date,
+    type: 'blue-moon' as const,
+    name: 'Blue Moon',
+    description: `Second full moon of the month (${blueMoon.folkName}) - a rare occurrence happening roughly every 2.7 years`,
+  }))
 }
 
 /**
- * Detect black moons (2nd new moon in a calendar month).
+ * Detect black moons (2nd new moon in a calendar month, location time zone).
  */
-function findBlackMoons(newMoons: Date[]): SpecialEvent[] {
-  const events: SpecialEvent[] = []
-
-  // Group new moons by year-month
-  const byMonth = new Map<string, Date[]>()
-  for (const nm of newMoons) {
-    const key = `${nm.getFullYear()}-${nm.getMonth()}`
-    const group = byMonth.get(key)
-    if (group) {
-      group.push(nm)
-    } else {
-      byMonth.set(key, [nm])
-    }
-  }
-
-  for (const group of byMonth.values()) {
-    if (group.length >= 2) {
-      group.sort((a, b) => a.getTime() - b.getTime())
-      const blackMoon = group[1] // Second new moon
-      events.push({
-        date: blackMoon,
-        type: 'black-moon',
-        name: 'Black Moon',
-        description: 'Second new moon of the month - an uncommon event ideal for deep sky observation and astrophotography',
-      })
-    }
-  }
-
-  return events
+function findBlackMoons(newMoons: Date[], timeZone: string): SpecialEvent[] {
+  return secondInSameMonth(newMoons, (date) => date, timeZone).map((blackMoon) => ({
+    date: blackMoon,
+    type: 'black-moon' as const,
+    name: 'Black Moon',
+    description: 'Second new moon of the month - an uncommon event ideal for deep sky observation and astrophotography',
+  }))
 }
 
 /**
  * Find all special astronomical events within a date range.
  * Includes: supermoons, blue moons, and black moons.
+ *
+ * Month grouping needs whole months, so the scan starts one month early and results
+ * before `startDate` are dropped afterwards.
  */
-export function findSpecialEvents(startDate: Date, months: number): SpecialEvent[] {
-  const fullMoons = findFullMoons(startDate, months)
-  const newMoons = findNewMoons(startDate, months)
+export function findSpecialEvents(startDate: Date, months: number, timeZone: string): SpecialEvent[] {
+  const scanStart = addMonths(startDate, -1)
+  const scanEnd = addMonths(startDate, months)
+  const fullMoons = findFullMoons(scanStart, months + 1, timeZone)
+  const newMoons = findMoonPhaseInstants(scanStart, scanEnd, 'new')
 
   const events: SpecialEvent[] = [
     ...findSupermoons(fullMoons),
-    ...findBlueMoons(fullMoons),
-    ...findBlackMoons(newMoons),
-  ]
+    ...findBlueMoons(fullMoons, timeZone),
+    ...findBlackMoons(newMoons, timeZone),
+  ].filter((event) => event.date.getTime() >= startDate.getTime())
 
-  // Sort by date
   events.sort((a, b) => a.date.getTime() - b.date.getTime())
-
   return events
 }

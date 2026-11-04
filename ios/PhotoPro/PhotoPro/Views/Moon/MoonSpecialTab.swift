@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct MoonSpecialTab: View {
-    private var events: [SpecialEvent] {
-        SpecialEvents.findSpecialEvents(startDate: Date(), months: 24)
-    }
+    @Environment(LocationStore.self) private var locationStore
 
     var body: some View {
+        let timeZone = locationStore.timeZone
+        let events = SpecialEvents.findSpecialEvents(startDate: Date(), months: 24, timeZone: timeZone)
+
         if events.isEmpty {
             VStack(spacing: Theme.spacingSM) {
                 Image(systemName: "sparkles")
@@ -29,13 +30,13 @@ struct MoonSpecialTab: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.foreground)
                             Spacer()
-                            Text(Formatting.formatDaysUntil(event.date))
+                            Text(Formatting.formatDaysUntil(event.date, timeZone: timeZone))
                                 .font(.caption.weight(.medium).monospacedDigit())
                                 .foregroundStyle(Theme.mutedForeground)
                         }
 
                         // Date
-                        Text(Formatting.formatDate(event.date))
+                        Text(Formatting.formatDate(event.date, timeZone: timeZone))
                             .font(.caption)
                             .foregroundStyle(Theme.mutedForeground)
 

@@ -24,17 +24,29 @@ struct WeatherPage: View {
                             )
                         }
                     } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.body)
-                            .foregroundStyle(Theme.mutedForeground)
+                        if weatherStore.isLoading {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.body)
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
                     }
                     .disabled(weatherStore.isLoading)
+                    .accessibilityLabel("Refresh forecast")
                 }
 
                 if let lastUpdated = weatherStore.lastUpdated {
-                    Text("Updated at \(Formatting.formatTime(lastUpdated, format: settingsStore.timeFormat))")
+                    Text("Updated \(updatedLabel(lastUpdated))")
                         .font(.caption2)
-                        .foregroundStyle(Theme.mutedForeground.opacity(0.5))
+                        .foregroundStyle(Theme.mutedForeground)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if weatherStore.forecast != nil, let error = weatherStore.error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(Theme.scoreFair)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -64,14 +76,14 @@ struct WeatherPage: View {
         .background(Theme.background)
         .navigationTitle("Weather")
         .toolbarTitleDisplayMode(.inline)
-        .task {
-            if weatherStore.forecast == nil {
-                await weatherStore.fetchForecast(
-                    latitude: locationStore.latitude,
-                    longitude: locationStore.longitude
-                )
-            }
+    }
+
+    private func updatedLabel(_ date: Date) -> String {
+        let timeZone = locationStore.timeZone
+        if AstroDateHelper.isToday(date, in: timeZone) {
+            return "at \(Formatting.formatTime(date, format: settingsStore.timeFormat, timeZone: timeZone))"
         }
+        return Formatting.formatDateTime(date, format: settingsStore.timeFormat, timeZone: timeZone)
     }
 }
 
@@ -81,6 +93,7 @@ struct DayScoreCard: View {
     let day: DailyPhotoScore
 
     @Environment(SettingsStore.self) private var settingsStore
+    @Environment(LocationStore.self) private var locationStore
 
     private var accentColor: Color {
         Theme.scoreColor(for: day.score)
@@ -120,7 +133,7 @@ struct DayScoreCard: View {
             // Pill badges
             HStack(spacing: Theme.spacingSM) {
                 PillBadge(
-                    text: "Best \(Formatting.formatTime(day.bestTime, format: settingsStore.timeFormat))",
+                    text: "Best \(Formatting.formatTime(day.bestTime, format: settingsStore.timeFormat, timeZone: locationStore.timeZone))",
                     foreground: Theme.foreground.opacity(0.8)
                 )
                 PillBadge(
@@ -165,29 +178,32 @@ struct DayScoreCard: View {
 
     @ViewBuilder
     private var trendView: some View {
-        switch day.trend {
-        case .improving:
-            Text("↗ +\(day.trendDelta)")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(Theme.scoreExcellent.opacity(0.9))
-        case .declining:
-            Text("↘ \(day.trendDelta)")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(Theme.scoreFair.opacity(0.9))
-        case .steady:
-            Text("→ steady")
-                .font(.caption2)
-                .foregroundStyle(Theme.foreground.opacity(0.45))
+        if let trend = day.trend {
+            let delta = day.trendDelta ?? 0
+            switch trend {
+            case .improving:
+                Text("\(trend.label) (+\(delta))")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Theme.scoreExcellent.opacity(0.9))
+            case .declining:
+                Text("\(trend.label) (\(delta))")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Theme.scoreFair.opacity(0.9))
+            case .steady:
+                Text("\(trend.label) (24h)")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.foreground.opacity(0.6))
+            }
         }
     }
 
     private var dayName: String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(day.displayDate) { return "Today" }
-        if calendar.isDateInTomorrow(day.displayDate) { return "Tomorrow" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: day.displayDate)
+        let timeZone = locationStore.timeZone
+        switch AstroDateHelper.dayDifference(from: Date(), to: day.displayDate, in: timeZone) {
+        case 0: return "Today"
+        case 1: return "Tomorrow"
+        default: return Formatting.formatWeekdayDate(day.displayDate, timeZone: timeZone)
+        }
     }
 }
 

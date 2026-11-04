@@ -41,11 +41,14 @@ enum WeatherScoring {
         return (score, windScore, highCloudScore, blockingCloudScore)
     }
 
+    /// Night profile. The moon sub-score is always included: when no illumination is passed,
+    /// it is computed for the scored hour (ALGORITHM.md → "Weather Scoring").
     static func scoreNightConditions(_ weather: HourlyWeather, moonIllumination: Double? = nil) -> (score: Int, windScore: Int, clearSkyScore: Int, humidityScore: Int, moonScore: Int) {
         let windScore = scoreWind(weather.windSpeed, ideal: 8, max: 12)
         let clearSkyScore = 100 - weather.cloudCover
         let humidityScore = scoreHumidity(weather.humidity)
-        let moonScore = moonIllumination != nil ? Int(100 - moonIllumination!) : 100
+        let illumination = moonIllumination ?? MoonCalculator.illuminationPercent(at: weather.time)
+        let moonScore = Int(clamp(100 - illumination).rounded())
 
         let score = Int((Double(windScore) * 0.3 + Double(clearSkyScore) * 0.4 + Double(humidityScore) * 0.15 + Double(moonScore) * 0.15).rounded())
         return (score, windScore, clearSkyScore, humidityScore, moonScore)
@@ -89,6 +92,7 @@ enum WeatherScoring {
         if profile == .sunset {
             let (score, windScore, highCloudScore, blockingCloudScore) = scoreSunsetConditions(weather)
             return ScoredConditions(
+                profile: .sunset,
                 score: score,
                 windScore: windScore,
                 cloudScore: highCloudScore,
@@ -103,6 +107,7 @@ enum WeatherScoring {
         } else {
             let (score, windScore, clearSkyScore, humidityScore, moonScore) = scoreNightConditions(weather, moonIllumination: moonIllumination)
             return ScoredConditions(
+                profile: .night,
                 score: score,
                 windScore: windScore,
                 cloudScore: clearSkyScore,
@@ -119,146 +124,103 @@ enum WeatherScoring {
 
     // MARK: - Forecast Matching
 
+    /// The forecast hour closest to `targetTime`, if within 2 hours.
     static func findClosestForecastHour(forecast: WeatherForecast, targetTime: Date) -> HourlyWeather? {
-        let hourly = forecast.hourly
-        guard !hourly.time.isEmpty else { return nil }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-
-        let isoFormatter = ISO8601DateFormatter()
-
-        var bestIndex = 0
+        let target = targetTime.timeIntervalSince1970
+        var bestIndex: Int?
         var bestDiff: TimeInterval = .infinity
 
-        for (index, timeStr) in hourly.time.enumerated() {
-            guard let date = formatter.date(from: timeStr) ?? isoFormatter.date(from: timeStr) else { continue }
-            let diff = abs(date.timeIntervalSince(targetTime))
+        for index in 0..<forecast.hourly.count {
+            let diff = abs(forecast.hourly.time[index] - target)
             if diff < bestDiff {
                 bestDiff = diff
                 bestIndex = index
             }
         }
 
-        let maxDiffMs = Double(maxForecastMatchHours) * 3600
-        guard bestDiff <= maxDiffMs else { return nil }
+        guard let bestIndex, bestDiff <= Double(maxForecastMatchHours) * 3600 else { return nil }
+        return forecast.point(at: bestIndex)
+    }
 
-        let date = formatter.date(from: hourly.time[bestIndex]) ?? isoFormatter.date(from: hourly.time[bestIndex]) ?? targetTime
-
-        return HourlyWeather(
-            time: date,
-            windSpeed: hourly.windSpeed10m[bestIndex],
-            cloudCover: hourly.cloudCover[bestIndex],
-            cloudCoverLow: hourly.cloudCoverLow[bestIndex],
-            cloudCoverMid: hourly.cloudCoverMid[bestIndex],
-            cloudCoverHigh: hourly.cloudCoverHigh[bestIndex],
-            humidity: hourly.relativeHumidity2m[bestIndex]
-        )
+    static func getScoreForTime(forecast: WeatherForecast, time: Date, profile: WeatherProfile, moonIllumination: Double? = nil) -> ScoredConditions? {
+        guard let weather = findClosestForecastHour(forecast: forecast, targetTime: time) else { return nil }
+        return scoreWeatherConditions(profile: profile, weather: weather, moonIllumination: moonIllumination)
     }
 
     // MARK: - Daily Photo Scores
 
+    /// Candidate profile for a location-local hour: sunset 16:00–22:00, night 23:00 and 00:00–04:00.
+    static func candidateProfile(forLocalHour hour: Int) -> WeatherProfile? {
+        if (16...22).contains(hour) { return .sunset }
+        if hour == 23 || (0...4).contains(hour) { return .night }
+        return nil
+    }
+
+    /// Best candidate per location-local day (at most 7), with the 24 h trend
+    /// (same profile at observation time + 24 h; ALGORITHM.md → "Daily photo score" / "Trend indicator").
     static func buildDailyPhotoScores(_ forecast: WeatherForecast) -> [DailyPhotoScore] {
-        let hourly = forecast.hourly
-        guard !hourly.time.isEmpty else { return [] }
+        let timeZone = forecast.timeZone
+        let calendar = AstroDateHelper.calendar(for: timeZone)
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-
-        let dayFormatter = DateFormatter()
-        dayFormatter.dateFormat = "yyyy-MM-dd"
-
-        // Group hours by day
-        var byDay: [String: [(index: Int, date: Date)]] = [:]
-
-        for (index, timeStr) in hourly.time.enumerated() {
-            guard let date = formatter.date(from: timeStr) else { continue }
-            let dayKey = dayFormatter.string(from: date)
-            byDay[dayKey, default: []].append((index, date))
+        // Group hours by local day, keeping chronological order.
+        var dayKeys: [String] = []
+        var byDay: [String: [HourlyWeather]] = [:]
+        for point in forecast.points.sorted(by: { $0.time < $1.time }) {
+            let dayKey = Formatting.string(from: point.time, pattern: "yyyy-MM-dd", timeZone: timeZone)
+            if byDay[dayKey] == nil { dayKeys.append(dayKey) }
+            byDay[dayKey, default: []].append(point)
         }
 
         var results: [DailyPhotoScore] = []
 
-        for (dayKey, points) in byDay {
-            guard !points.isEmpty else { continue }
+        for dayKey in dayKeys.sorted().prefix(7) {
+            guard let points = byDay[dayKey], let first = points.first else { continue }
 
-            // Find candidates: sunset hours (16-22) and night hours (0-4, 22-23)
-            struct Candidate {
-                var profile: WeatherProfile
-                var index: Int
-                var date: Date
+            var candidates: [(profile: WeatherProfile, weather: HourlyWeather)] = points.compactMap { point in
+                let hour = calendar.component(.hour, from: point.time)
+                return candidateProfile(forLocalHour: hour).map { ($0, point) }
             }
-
-            var candidates: [Candidate] = []
-            let calendar = Calendar.current
-
-            for point in points {
-                let hour = calendar.component(.hour, from: point.date)
-                if hour >= 16 && hour <= 22 {
-                    candidates.append(Candidate(profile: .sunset, index: point.index, date: point.date))
-                } else if hour <= 4 || hour >= 22 {
-                    candidates.append(Candidate(profile: .night, index: point.index, date: point.date))
-                }
-            }
-
             if candidates.isEmpty {
-                candidates.append(Candidate(profile: .sunset, index: points[0].index, date: points[0].date))
+                candidates = [(.sunset, first)]
             }
 
-            var bestScore: ScoredConditions?
-            var bestCandidate: Candidate?
-
+            var best: (profile: WeatherProfile, weather: HourlyWeather, scored: ScoredConditions)?
             for candidate in candidates {
-                let weather = HourlyWeather(
-                    time: candidate.date,
-                    windSpeed: hourly.windSpeed10m[candidate.index],
-                    cloudCover: hourly.cloudCover[candidate.index],
-                    cloudCoverLow: hourly.cloudCoverLow[candidate.index],
-                    cloudCoverMid: hourly.cloudCoverMid[candidate.index],
-                    cloudCoverHigh: hourly.cloudCoverHigh[candidate.index],
-                    humidity: hourly.relativeHumidity2m[candidate.index]
-                )
-
-                let scored = scoreWeatherConditions(profile: candidate.profile, weather: weather)
-                if bestScore == nil || scored.score > (bestScore?.score ?? 0) {
-                    bestScore = scored
-                    bestCandidate = candidate
+                let scored = scoreWeatherConditions(profile: candidate.profile, weather: candidate.weather)
+                if best == nil || scored.score > (best?.scored.score ?? 0) {
+                    best = (candidate.profile, candidate.weather, scored)
                 }
             }
+            guard let best else { continue }
 
-            guard let score = bestScore, let candidate = bestCandidate else { continue }
+            var trend: ScoreTrend?
+            var trendDelta: Int?
+            let nextTime = best.weather.time.addingTimeInterval(24 * 3600)
+            if let next = getScoreForTime(forecast: forecast, time: nextTime, profile: best.profile) {
+                let delta = next.score - best.scored.score
+                trendDelta = delta
+                if delta >= 10 {
+                    trend = .improving
+                } else if delta <= -10 {
+                    trend = .declining
+                } else {
+                    trend = .steady
+                }
+            }
 
             results.append(DailyPhotoScore(
                 date: dayKey,
-                displayDate: points[0].date,
-                bestTime: candidate.date,
-                bestProfile: candidate.profile,
-                score: score.score,
-                conditions: score,
-                trend: .steady,
-                trendDelta: 0
+                displayDate: first.time,
+                bestTime: best.weather.time,
+                bestProfile: best.profile,
+                score: best.scored.score,
+                conditions: best.scored,
+                trend: trend,
+                trendDelta: trendDelta
             ))
         }
 
-        var sorted = results
-            .sorted { $0.displayDate < $1.displayDate }
-            .prefix(7)
-            .map { $0 }
-
-        // Calculate trends by comparing to next day (forward-looking, per ALGORITHM.md)
-        for i in 0..<(sorted.count - 1) {
-            let delta = sorted[i + 1].score - sorted[i].score
-            if delta >= 10 {
-                sorted[i].trend = .improving
-            } else if delta <= -10 {
-                sorted[i].trend = .declining
-            } else {
-                sorted[i].trend = .steady
-            }
-            sorted[i].trendDelta = delta
-        }
-
-        return sorted
+        return results
     }
 
     static func isGoodWeather(_ score: Int) -> Bool {

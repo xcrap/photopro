@@ -1,6 +1,7 @@
-import { format } from 'date-fns'
+import SunCalc from 'suncalc'
 import type { HourlyForecast, WeatherForecast } from '@/lib/weather/api'
 import type { ProximityEvent } from '@/types'
+import { getDeviceTimeZone, isValidTimeZone, localDayKey, localHour } from '@/lib/time/zone'
 
 export type WeatherProfile = 'sunset' | 'night'
 
@@ -80,11 +81,18 @@ function scoreSunsetConditions(weather: HourlyForecast): Score {
   }
 }
 
+/** Moon illumination (%) at a given instant. */
+export function getMoonIlluminationPercent(time: Date): number {
+  return SunCalc.getMoonIllumination(time).fraction * 100
+}
+
 function scoreNightConditions(weather: HourlyForecast, moonIllumination?: number): Score {
   const windScore = scoreWind(weather.wind_speed_10m, { ideal: 8, max: 12 })
   const clearSkyScore = 100 - weather.cloud_cover
   const humidityScore = scoreHumidity(weather.relative_humidity_2m)
-  const moonScore = moonIllumination !== undefined ? (100 - moonIllumination) : 100
+  // The night profile always includes the moon: compute it for the scored hour if not given.
+  const illumination = moonIllumination ?? getMoonIlluminationPercent(weather.time)
+  const moonScore = Math.round(clamp(100 - illumination))
 
   return {
     score: Math.round(windScore * 0.3 + clearSkyScore * 0.4 + humidityScore * 0.15 + moonScore * 0.15),
@@ -178,11 +186,15 @@ export function getCombinedOpportunityScore(astronomyScore: number, weatherScore
   return Math.round(astronomyScore * 0.5 + weatherScore * 0.5)
 }
 
-function getDailyCandidates(hourly: HourlyForecast[]): Array<{ profile: WeatherProfile; weather: HourlyForecast }> {
+function getDailyCandidates(
+  hourly: HourlyForecast[],
+  timeZone: string,
+): Array<{ profile: WeatherProfile; weather: HourlyForecast }> {
   const candidates: Array<{ profile: WeatherProfile; weather: HourlyForecast }> = []
 
+  // Candidate hours are location-local: sunset 16–22, night 23 and 0–4.
   for (const point of hourly) {
-    const hour = point.time.getHours()
+    const hour = localHour(point.time, timeZone)
     if (hour >= 16 && hour <= 22) {
       candidates.push({ profile: 'sunset', weather: point })
       continue
@@ -197,10 +209,12 @@ function getDailyCandidates(hourly: HourlyForecast[]): Array<{ profile: WeatherP
 }
 
 export function buildDailyPhotoScores(forecast: WeatherForecast): DailyPhotoScore[] {
+  // The forecast's own `timezone` is the location's zone (timezone=auto).
+  const timeZone = isValidTimeZone(forecast.timezone) ? forecast.timezone : getDeviceTimeZone()
   const byDay = new Map<string, HourlyForecast[]>()
 
   for (const point of forecast.hourly) {
-    const key = format(point.time, 'yyyy-MM-dd')
+    const key = localDayKey(point.time, timeZone)
     const existing = byDay.get(key)
     if (existing) {
       existing.push(point)
@@ -213,7 +227,7 @@ export function buildDailyPhotoScores(forecast: WeatherForecast): DailyPhotoScor
 
   for (const points of byDay.values()) {
     if (points.length === 0) continue
-    const dayCandidates = getDailyCandidates(points)
+    const dayCandidates = getDailyCandidates(points, timeZone)
     const fallback = dayCandidates.length > 0 ? dayCandidates : [{ profile: 'sunset' as const, weather: points[0] }]
 
     let best: ScoredConditions | null = null

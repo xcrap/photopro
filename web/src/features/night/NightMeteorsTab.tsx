@@ -10,10 +10,16 @@ import {
 import { getVisibilityLabel } from '@/lib/astronomy/visibility'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
 import { formatDate } from '@/lib/formatting'
+import { useTimeZone } from '@/hooks/useTimeZone'
+import { localTimeOnDay } from '@/lib/time/zone'
 
 export function NightMeteorsTab() {
-  const { latitude, longitude } = useLocationStore()
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
+  const timeZone = useTimeZone()
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+  // Subscribe so badges appear once the forecast loads.
+  useWeatherStore((state) => state.forecast)
 
   const showers = useMemo(
     () => getUpcomingMeteorShowers(new Date(), 12, latitude),
@@ -39,9 +45,8 @@ export function NightMeteorsTab() {
         </div>
       ) : (
         showers.map((shower) => {
-          const peakNight = new Date(shower.peakDate)
-          peakNight.setHours(2, 0, 0, 0)
-          const moonData = getMoonData(peakNight, latitude, longitude)
+          const peakNight = localTimeOnDay(shower.peakDate, timeZone, 2)
+          const moonData = getMoonData(peakNight, latitude, longitude, timeZone)
 
           const weatherScore = getScoreForTime(
             peakNight,
@@ -56,7 +61,7 @@ export function NightMeteorsTab() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-base font-semibold tracking-tight">
-                    {formatDate(shower.peakDate)}
+                    {formatDate(shower.peakDate, timeZone)}
                     {shower.isActive && (
                       <span className="ml-2 text-xs font-medium text-emerald-400">
                         Active now

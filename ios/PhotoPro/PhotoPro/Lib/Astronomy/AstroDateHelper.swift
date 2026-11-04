@@ -1,64 +1,62 @@
 import Foundation
 
-/// Date normalization helpers for SunCalc.
+/// Day-boundary helpers in the **location** time zone (ALGORITHM.md → "Time Zones & Day Boundaries").
 ///
-/// The Swift SunCalc port (Timac/SunCalc) has a critical timezone behaviour:
+/// Always use these when passing dates to SunCalc:
 ///
-/// - `SunCalc.getTimes()` (sun rise/set) uses Julian day arithmetic. When you
-///   pass **local midnight**, the resulting UTC timestamp can land on the
-///   previous solar day for westward timezones (e.g. Azores UTC-1 local
-///   midnight = 01:00 UTC, which resolves to yesterday's sunrise/sunset).
+/// - `SunCalc.getTimes()` returns the solar day nearest the instant it is given, so pass
+///   **12:00 local time** (`localNoon`). Local midnight or an arbitrary time can resolve to the
+///   previous or next day (e.g. Samoa/Tonga with noon UTC).
+/// - `SunCalc.getMoonTimes()` (Swift port) scans 24 h forward from whatever instant it is given,
+///   so pass **local midnight** (`localMidnight`).
 ///
-/// - `SunCalc.getMoonTimes()` in the **Swift** version does NOT normalise
-///   its input date (unlike the JS version which calls `setHours(0,0,0,0)`).
-///   It scans 24 h forward from whatever time you provide.
-///
-/// **Rule**: always use the helpers below when passing dates to SunCalc so
-/// that sun and moon calculations agree on the same calendar day.
+/// Every calendar here is Gregorian with a POSIX locale, never `Calendar.current`, which can be
+/// Buddhist or Japanese and which uses the device time zone.
 enum AstroDateHelper {
 
-    // MARK: - Shared UTC calendar (avoids allocating one on every call)
+    /// Gregorian calendar in UTC.
+    static let utcCalendar: Calendar = calendar(for: TimeZone(identifier: "UTC") ?? .gmt)
 
-    private static let utcCalendar: Calendar = {
+    /// Gregorian, POSIX-locale calendar pinned to `timeZone`.
+    static func calendar(for timeZone: TimeZone) -> Calendar {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        cal.timeZone = timeZone
+        cal.locale = Locale(identifier: "en_US_POSIX")
         return cal
-    }()
-
-    // MARK: - Public API
-
-    /// Noon UTC for the **local** calendar day of `date`.
-    ///
-    /// Use this when calling `SunCalc.getTimes()` so the Julian-day
-    /// calculation always resolves to the correct solar day.
-    static func noonUTC(for date: Date) -> Date {
-        let local = Calendar.current
-        let comps = local.dateComponents([.year, .month, .day], from: date)
-        var noon = DateComponents()
-        noon.year = comps.year
-        noon.month = comps.month
-        noon.day = comps.day
-        noon.hour = 12
-        noon.minute = 0
-        noon.second = 0
-        return utcCalendar.date(from: noon) ?? date
     }
 
-    /// Local midnight for `date`.
-    ///
-    /// Use this when calling `SunCalc.getMoonTimes()` (Swift version) so
-    /// the 24-hour scan starts at the beginning of the local day.
-    static func localMidnight(for date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
+    /// 12:00 local time on the local day containing `date`. Pass this to `SunCalc.getTimes()`.
+    static func localNoon(for date: Date, in timeZone: TimeZone) -> Date {
+        let cal = calendar(for: timeZone)
+        let start = cal.startOfDay(for: date)
+        return cal.date(bySettingHour: 12, minute: 0, second: 0, of: start)
+            ?? start.addingTimeInterval(12 * 3600)
     }
 
-    /// Advance a noon-UTC anchor by `days` calendar days (stays at noon UTC).
-    static func addDaysNoonUTC(_ days: Int, to anchor: Date) -> Date? {
-        utcCalendar.date(byAdding: .day, value: days, to: anchor)
+    /// Local midnight (start of the local day) for `date`. Pass this to `SunCalc.getMoonTimes()`.
+    static func localMidnight(for date: Date, in timeZone: TimeZone) -> Date {
+        calendar(for: timeZone).startOfDay(for: date)
     }
 
-    /// Advance a local-midnight anchor by `days` calendar days (stays at local midnight).
-    static func addDaysLocalMidnight(_ days: Int, to anchor: Date) -> Date? {
-        Calendar.current.date(byAdding: .day, value: days, to: anchor)
+    /// Advance `date` by whole local calendar days (keeps the local wall-clock time across DST).
+    static func addDays(_ days: Int, to date: Date, in timeZone: TimeZone) -> Date {
+        calendar(for: timeZone).date(byAdding: .day, value: days, to: date)
+            ?? date.addingTimeInterval(Double(days) * 86400)
+    }
+
+    /// Calendar-day difference `target − reference` in the location time zone (not 24 h periods).
+    static func dayDifference(from reference: Date, to target: Date, in timeZone: TimeZone) -> Int {
+        let cal = calendar(for: timeZone)
+        let a = cal.startOfDay(for: reference)
+        let b = cal.startOfDay(for: target)
+        return cal.dateComponents([.day], from: a, to: b).day ?? 0
+    }
+
+    static func isSameDay(_ a: Date, _ b: Date, in timeZone: TimeZone) -> Bool {
+        calendar(for: timeZone).isDate(a, inSameDayAs: b)
+    }
+
+    static func isToday(_ date: Date, in timeZone: TimeZone, now: Date = Date()) -> Bool {
+        isSameDay(date, now, in: timeZone)
     }
 }

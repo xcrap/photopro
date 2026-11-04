@@ -1,7 +1,9 @@
 import type { HourlyForecast, WeatherForecast } from '@/lib/weather/api'
 
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const STORAGE_KEY = `photopro-weather-cache-${CACHE_VERSION}`
+const LEGACY_STORAGE_KEYS = ['photopro-weather-cache-v1']
+const MAX_CACHED_LOCATIONS = 10
 
 interface SerializedWeatherForecast {
   latitude: number
@@ -15,7 +17,11 @@ interface WeatherCacheMap {
   [locationKey: string]: SerializedWeatherForecast
 }
 
-function getLocationKey(latitude: number, longitude: number): string {
+/**
+ * Cache key = the *requested* coordinates. Open-Meteo snaps responses to its grid, so the
+ * coordinates in the response never match the ones the app asks for.
+ */
+export function getLocationKey(latitude: number, longitude: number): string {
   return `${latitude.toFixed(3)}:${longitude.toFixed(3)}`
 }
 
@@ -42,10 +48,9 @@ function deserializeForecast(serialized: SerializedWeatherForecast): WeatherFore
 function readCacheMap(): WeatherCacheMap {
   if (typeof window === 'undefined') return {}
 
-  const raw = window.localStorage.getItem(STORAGE_KEY)
-  if (!raw) return {}
-
   try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
     return JSON.parse(raw) as WeatherCacheMap
   } catch {
     return {}
@@ -54,7 +59,18 @@ function readCacheMap(): WeatherCacheMap {
 
 function writeCacheMap(cache: WeatherCacheMap): void {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cache))
+
+  const newestFirst = Object.entries(cache)
+    .sort(([, a], [, b]) => b.fetchedAt - a.fetchedAt)
+    .slice(0, MAX_CACHED_LOCATIONS)
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(newestFirst)))
+    // v1 entries were keyed by the response's grid coordinates and never matched.
+    for (const legacyKey of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(legacyKey)
+  } catch {
+    // Storage full or unavailable: caching is best-effort.
+  }
 }
 
 export function getCachedForecast(
@@ -62,9 +78,7 @@ export function getCachedForecast(
   longitude: number,
   maxAgeMs: number,
 ): WeatherForecast | null {
-  const key = getLocationKey(latitude, longitude)
-  const cache = readCacheMap()
-  const cached = cache[key]
+  const cached = readCacheMap()[getLocationKey(latitude, longitude)]
   if (!cached) return null
 
   const ageMs = Date.now() - cached.fetchedAt
@@ -76,24 +90,17 @@ export function getCachedForecastAnyAge(
   latitude: number,
   longitude: number,
 ): WeatherForecast | null {
-  const key = getLocationKey(latitude, longitude)
-  const cache = readCacheMap()
-  const cached = cache[key]
-  if (!cached) return null
-  return deserializeForecast(cached)
+  const cached = readCacheMap()[getLocationKey(latitude, longitude)]
+  return cached ? deserializeForecast(cached) : null
 }
 
-export function setCachedForecast(forecast: WeatherForecast): void {
-  const key = getLocationKey(forecast.latitude, forecast.longitude)
+/** Store a forecast under the coordinates that were *requested*. */
+export function setCachedForecast(
+  latitude: number,
+  longitude: number,
+  forecast: WeatherForecast,
+): void {
   const cache = readCacheMap()
-  cache[key] = serializeForecast(forecast)
-  writeCacheMap(cache)
-}
-
-export function clearCachedForecast(latitude: number, longitude: number): void {
-  const key = getLocationKey(latitude, longitude)
-  const cache = readCacheMap()
-  if (!(key in cache)) return
-  delete cache[key]
+  cache[getLocationKey(latitude, longitude)] = serializeForecast(forecast)
   writeCacheMap(cache)
 }

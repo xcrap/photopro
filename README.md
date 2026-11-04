@@ -33,9 +33,9 @@ Both platforms implement the same prediction and scoring logic, documented in [`
 
 ## Data Sources
 
-- **Astronomy**: SunCalc library (client-side calculations)
-- **Weather**: [Open-Meteo](https://open-meteo.com/) (free, no API key)
-- **Eclipses / Meteors / Comets / Supermoons**: Bundled JSON datasets
+- **Astronomy**: SunCalc (rise/set, positions, illumination) plus a Meeus ch. 47 moon ephemeris (full/new moon instants, moon distance, supermoons), all client-side
+- **Weather**: [Open-Meteo](https://open-meteo.com/) (free, no API key); also supplies each location's time zone
+- **Eclipses / Meteors / Comets**: Bundled JSON datasets
 
 ## Development
 

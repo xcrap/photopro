@@ -42,3 +42,6 @@ Package.resolved
 
 # AI
 .claude
+
+# Vite cache
+.vite

@@ -1,11 +1,15 @@
 import SwiftUI
 
+/// Day picker. Days, "Today" and the date label use the location time zone.
 struct DateNavigator: View {
     @Binding var selectedDate: Date
+    @Environment(LocationStore.self) private var locationStore
     @State private var showingDatePicker = false
 
+    private var timeZone: TimeZone { locationStore.timeZone }
+
     private var isToday: Bool {
-        Calendar.current.isDateInToday(selectedDate)
+        AstroDateHelper.isToday(selectedDate, in: timeZone)
     }
 
     var body: some View {
@@ -13,20 +17,22 @@ struct DateNavigator: View {
             // Left side: nav arrows + today
             HStack(spacing: 10) {
                 Button {
-                    selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
+                    selectedDate = AstroDateHelper.addDays(-1, to: selectedDate, in: timeZone)
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.body.weight(.medium))
                         .foregroundStyle(Theme.primary)
                 }
+                .accessibilityLabel("Previous day")
 
                 Button {
-                    selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate) ?? selectedDate
+                    selectedDate = AstroDateHelper.addDays(1, to: selectedDate, in: timeZone)
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.body.weight(.medium))
                         .foregroundStyle(Theme.primary)
                 }
+                .accessibilityLabel("Next day")
 
                 if !isToday {
                     Button("Today") {
@@ -52,6 +58,8 @@ struct DateNavigator: View {
             NavigationStack {
                 DatePicker("Select Date", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.graphical)
+                    .environment(\.timeZone, timeZone)
+                    .environment(\.calendar, AstroDateHelper.calendar(for: timeZone))
                     .padding()
                     .preferredColorScheme(.dark)
                     .navigationTitle("Select Date")
@@ -67,10 +75,10 @@ struct DateNavigator: View {
     }
 
     private var dateLabel: String {
-        if Calendar.current.isDateInToday(selectedDate) {
-            return "Today, \(Formatting.formatDateShort(selectedDate))"
+        if isToday {
+            return "Today, \(Formatting.formatDateShort(selectedDate, timeZone: timeZone))"
         }
-        return Formatting.formatDate(selectedDate)
+        return Formatting.formatDate(selectedDate, timeZone: timeZone)
     }
 }
 
@@ -78,4 +86,5 @@ struct DateNavigator: View {
     DateNavigator(selectedDate: .constant(Date()))
         .padding()
         .background(Theme.background)
+        .environment(LocationStore())
 }

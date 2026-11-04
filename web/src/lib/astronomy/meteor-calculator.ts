@@ -32,6 +32,7 @@ export interface MeteorShowerEvent extends MeteorShower {
 export function getMeteorShowers(
   year: number,
   userLatitude: number,
+  referenceDate: Date = new Date(),
 ): MeteorShowerEvent[] {
   const showers = meteorShowersData as MeteorShower[]
 
@@ -60,8 +61,7 @@ export function getMeteorShowers(
       const maxAltitude = getMaxAltitude(userLatitude, shower.radiant.dec)
       const visibility = getVisibilityRating(maxAltitude)
 
-      const now = new Date()
-      const isActive = now >= activeStart && now <= activeEnd
+      const isActive = referenceDate >= activeStart && referenceDate <= activeEnd
 
       return {
         ...shower,
@@ -88,10 +88,10 @@ export function getUpcomingMeteorShowers(
   const year = fromDate.getFullYear()
   const endDate = new Date(fromDate.getTime() + months * 30 * 86400000)
 
-  const thisYear = getMeteorShowers(year, userLatitude)
-  const nextYear = getMeteorShowers(year + 1, userLatitude)
-
-  return [...thisYear, ...nextYear]
+  // A shower's "year" starts at the March equinox, so showers that peak in early
+  // January (Quadrantids) belong to the previous year's set.
+  return [year - 1, year, year + 1]
+    .flatMap((y) => getMeteorShowers(y, userLatitude, fromDate))
     .filter(
       (shower) => shower.peakDate >= fromDate && shower.peakDate <= endDate,
     )

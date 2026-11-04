@@ -30,8 +30,9 @@ enum SolarLongitude {
     /// Find the date when the Sun reaches a target solar longitude in a given year.
     static func findDateForSolarLongitude(_ targetLongitude: Double, year: Int) -> Date {
         let daysFromEquinox = (targetLongitude / 360.0) * 365.25
-        let calendar = Calendar.current
-        let marchEquinox = calendar.date(from: DateComponents(year: year, month: 3, day: 20))!
+        // Gregorian/UTC on purpose: the device calendar may be Buddhist or Japanese.
+        let marchEquinox = AstroDateHelper.utcCalendar.date(from: DateComponents(year: year, month: 3, day: 20))
+            ?? Date(timeIntervalSince1970: (Double(year - 1970) * 365.25 + 78) * 86400)
         let estimatedDate = marchEquinox.addingTimeInterval(daysFromEquinox * 86400)
 
         var low = estimatedDate.addingTimeInterval(-5 * 86400)

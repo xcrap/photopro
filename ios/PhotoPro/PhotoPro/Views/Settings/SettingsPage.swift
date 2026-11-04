@@ -9,9 +9,6 @@ struct SettingsPage: View {
     @State private var manualLon = ""
 
     var body: some View {
-        @Bindable var settings = settingsStore
-        @Bindable var location = locationStore
-
         Form {
             // MARK: - Location
             Section("Location") {
@@ -48,18 +45,28 @@ struct SettingsPage: View {
                         .monospacedDigit()
                 }
 
+                HStack {
+                    Text("Time Zone")
+                    Spacer()
+                    Text(locationStore.timeZone.identifier)
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+
                 if !locationStore.gpsEnabled {
-                    HStack {
-                        TextField("Latitude", text: $manualLat)
-                            .keyboardType(.decimalPad)
-                        TextField("Longitude", text: $manualLon)
-                            .keyboardType(.decimalPad)
-                        Button("Set") {
-                            if let lat = Double(manualLat), let lon = Double(manualLon) {
-                                locationStore.setLocation(lat: lat, lon: lon, name: "Manual")
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            TextField("Latitude", text: $manualLat)
+                                .coordinateField()
+                            TextField("Longitude", text: $manualLon)
+                                .coordinateField()
+                            Button("Set") {
+                                if let coordinate = CoordinateInput.validated(latitude: manualLat, longitude: manualLon) {
+                                    locationStore.setLocation(lat: coordinate.latitude, lon: coordinate.longitude, name: "Manual")
+                                }
                             }
+                            .disabled(CoordinateInput.validated(latitude: manualLat, longitude: manualLon) == nil)
                         }
-                        .disabled(Double(manualLat) == nil || Double(manualLon) == nil)
+                        CoordinateErrors(latitude: manualLat, longitude: manualLon)
                     }
                 }
             }
@@ -77,8 +84,7 @@ struct SettingsPage: View {
                         }
                         Spacer()
                         Button("Use") {
-                            locationStore.setGpsEnabled(false)
-                            locationStore.setLocation(lat: saved.latitude, lon: saved.longitude, name: saved.name)
+                            locationStore.useSavedLocation(saved)
                         }
                         .font(.caption.weight(.medium))
                     }
@@ -110,7 +116,8 @@ struct SettingsPage: View {
                         locationStore.addSavedLocation(
                             name: locationStore.name ?? "Current Location",
                             latitude: locationStore.latitude,
-                            longitude: locationStore.longitude
+                            longitude: locationStore.longitude,
+                            timeZoneIdentifier: locationStore.timeZoneIdentifier
                         )
                     }
                 }
@@ -135,7 +142,7 @@ struct SettingsPage: View {
                     Slider(
                         value: Binding(
                             get: { Double(settingsStore.eclipseYearsRange) },
-                            set: { settingsStore.eclipseYearsRange = Int($0) }
+                            set: { settingsStore.setEclipseYearsRange(Int($0.rounded())) }
                         ),
                         in: 1...5,
                         step: 1
@@ -178,9 +185,10 @@ struct LocationDialog: View {
             Form {
                 TextField("Name", text: $name)
                 TextField("Latitude", text: $latitude)
-                    .keyboardType(.decimalPad)
+                    .coordinateField()
                 TextField("Longitude", text: $longitude)
-                    .keyboardType(.decimalPad)
+                    .coordinateField()
+                CoordinateErrors(latitude: latitude, longitude: longitude)
             }
             .navigationTitle(editingLocation == nil ? "Add Location" : "Edit Location")
             .navigationBarTitleDisplayMode(.inline)
@@ -190,12 +198,17 @@ struct LocationDialog: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        if let lat = Double(latitude), let lon = Double(longitude), !name.isEmpty {
-                            onSave(name, lat, lon)
+                        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if let coordinate = CoordinateInput.validated(latitude: latitude, longitude: longitude),
+                           !trimmedName.isEmpty {
+                            onSave(trimmedName, coordinate.latitude, coordinate.longitude)
                             dismiss()
                         }
                     }
-                    .disabled(name.isEmpty || Double(latitude) == nil || Double(longitude) == nil)
+                    .disabled(
+                        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            || CoordinateInput.validated(latitude: latitude, longitude: longitude) == nil
+                    )
                 }
             }
         }
@@ -204,6 +217,36 @@ struct LocationDialog: View {
                 name = loc.name
                 latitude = String(loc.latitude)
                 longitude = String(loc.longitude)
+            }
+        }
+    }
+}
+
+// MARK: - Coordinate Entry
+
+private extension View {
+    /// Keyboard with a minus sign and both "." and "," (parsed by `CoordinateInput`).
+    func coordinateField() -> some View {
+        keyboardType(.numbersAndPunctuation)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+    }
+}
+
+/// Range errors for typed coordinates (shown only for non-empty fields).
+private struct CoordinateErrors: View {
+    let latitude: String
+    let longitude: String
+
+    var body: some View {
+        let errors = [CoordinateInput.latitudeError(latitude), CoordinateInput.longitudeError(longitude)].compactMap { $0 }
+        if !errors.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(errors, id: \.self) { error in
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Theme.destructive)
+                }
             }
         }
     }

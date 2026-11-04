@@ -1,13 +1,17 @@
 import Foundation
 
-struct WeatherForecast: Codable {
+struct WeatherForecast: Codable, Sendable {
+    /// The **requested** coordinates (Open-Meteo snaps its response to a grid, so those never match).
     var latitude: Double
     var longitude: Double
+    /// IANA time zone of the location, from Open-Meteo (`timezone=auto`).
+    var timezone: String
     var hourly: HourlyForecast
     var fetchedAt: TimeInterval
 
-    struct HourlyForecast: Codable {
-        var time: [String]
+    struct HourlyForecast: Codable, Sendable {
+        /// Absolute instants (unix seconds, `timeformat=unixtime`).
+        var time: [TimeInterval]
         var windSpeed10m: [Double]
         var cloudCover: [Int]
         var cloudCoverLow: [Int]
@@ -15,19 +19,33 @@ struct WeatherForecast: Codable {
         var cloudCoverHigh: [Int]
         var relativeHumidity2m: [Int]
 
-        enum CodingKeys: String, CodingKey {
-            case time
-            case windSpeed10m = "wind_speed_10m"
-            case cloudCover = "cloud_cover"
-            case cloudCoverLow = "cloud_cover_low"
-            case cloudCoverMid = "cloud_cover_mid"
-            case cloudCoverHigh = "cloud_cover_high"
-            case relativeHumidity2m = "relative_humidity_2m"
+        var count: Int {
+            [time.count, windSpeed10m.count, cloudCover.count, cloudCoverLow.count,
+             cloudCoverMid.count, cloudCoverHigh.count, relativeHumidity2m.count].min() ?? 0
         }
     }
+
+    var cacheKey: String { LocationKey.make(latitude: latitude, longitude: longitude) }
+
+    /// Location time zone, falling back to the device's.
+    var timeZone: TimeZone { TimeZone(identifier: timezone) ?? .current }
+
+    func point(at index: Int) -> HourlyWeather {
+        HourlyWeather(
+            time: Date(timeIntervalSince1970: hourly.time[index]),
+            windSpeed: hourly.windSpeed10m[index],
+            cloudCover: hourly.cloudCover[index],
+            cloudCoverLow: hourly.cloudCoverLow[index],
+            cloudCoverMid: hourly.cloudCoverMid[index],
+            cloudCoverHigh: hourly.cloudCoverHigh[index],
+            humidity: hourly.relativeHumidity2m[index]
+        )
+    }
+
+    var points: [HourlyWeather] { (0..<hourly.count).map(point(at:)) }
 }
 
-struct HourlyWeather {
+struct HourlyWeather: Sendable {
     var time: Date
     var windSpeed: Double
     var cloudCover: Int
@@ -37,12 +55,13 @@ struct HourlyWeather {
     var humidity: Int
 }
 
-enum WeatherProfile: String {
+enum WeatherProfile: String, Sendable {
     case sunset
     case night
 }
 
-struct ScoredConditions {
+struct ScoredConditions: Sendable {
+    var profile: WeatherProfile
     var score: Int
     var windScore: Int
     var cloudScore: Int
@@ -56,20 +75,31 @@ struct ScoredConditions {
     var humidity: Int
 }
 
-struct DailyPhotoScore: Identifiable {
+struct DailyPhotoScore: Identifiable, Sendable {
     var id: String { date }
+    /// Local calendar day key "yyyy-MM-dd" (location time zone).
     var date: String
     var displayDate: Date
+    /// Observation time: the best candidate hour.
     var bestTime: Date
     var bestProfile: WeatherProfile
     var score: Int
     var conditions: ScoredConditions
-    var trend: ScoreTrend
-    var trendDelta: Int
+    /// `nil` when the forecast doesn't cover observation time + 24 h.
+    var trend: ScoreTrend?
+    var trendDelta: Int?
 }
 
-enum ScoreTrend: String {
+enum ScoreTrend: String, Sendable {
     case improving
     case steady
     case declining
+
+    var label: String {
+        switch self {
+        case .improving: return "↗ improving"
+        case .steady: return "→ steady"
+        case .declining: return "↘ getting worse"
+        }
+    }
 }

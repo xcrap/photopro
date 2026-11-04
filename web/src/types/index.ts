@@ -4,24 +4,29 @@ export interface Location {
   name?: string
 }
 
+/** Polar day/night condition for a sun-times day, or null for a normal day. */
+export type PolarCondition = 'midnight-sun' | 'polar-night' | null
+
+/** Sun event times for one local day. `null` = the Sun never reaches that altitude (polar). */
 export interface SunTimes {
-  sunrise: Date
-  sunset: Date
-  solarNoon: Date
-  goldenHourStart: Date
-  goldenHourEnd: Date
-  goldenHourMorningStart: Date
-  goldenHourMorningEnd: Date
-  blueHourMorningStart: Date
-  blueHourMorningEnd: Date
-  blueHourEveningStart: Date
-  blueHourEveningEnd: Date
-  dawn: Date
-  dusk: Date
-  nauticalDawn: Date
-  nauticalDusk: Date
-  nightStart: Date
-  nightEnd: Date
+  sunrise: Date | null
+  sunset: Date | null
+  solarNoon: Date | null
+  polar: PolarCondition
+  goldenHourStart: Date | null
+  goldenHourEnd: Date | null
+  goldenHourMorningStart: Date | null
+  goldenHourMorningEnd: Date | null
+  blueHourMorningStart: Date | null
+  blueHourMorningEnd: Date | null
+  blueHourEveningStart: Date | null
+  blueHourEveningEnd: Date | null
+  dawn: Date | null
+  dusk: Date | null
+  nauticalDawn: Date | null
+  nauticalDusk: Date | null
+  nightStart: Date | null
+  nightEnd: Date | null
 }
 
 export interface SunPosition {
@@ -48,7 +53,7 @@ export interface FullMoonEvent {
   name: string
   folkName: string
   isSupermoon: boolean
-  distance?: number
+  distance: number
 }
 
 export interface ProximityEvent {
@@ -96,6 +101,8 @@ export interface SavedLocation {
   name: string
   latitude: number
   longitude: number
+  /** IANA time zone, learned from the first forecast for this location. */
+  timeZone?: string | null
 }
 
 export interface CityPreset {

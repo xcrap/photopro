@@ -28,11 +28,22 @@ enum MoonCalculator {
         return "\u{1F318}"
     }
 
-    /// Get comprehensive moon data for a given date and location.
-    static func getMoonData(date: Date, lat: Double, lon: Double) -> MoonData {
+    /// Moonrise/moonset during the local day (location time zone) containing `date`.
+    static func getMoonRiseSet(date: Date, lat: Double, lon: Double, timeZone: TimeZone) -> (rise: Date?, set: Date?) {
+        let times = SunCalc.getMoonTimes(
+            date: AstroDateHelper.localMidnight(for: date, in: timeZone),
+            latitude: lat,
+            longitude: lon
+        )
+        return (times.rise, times.set)
+    }
+
+    /// Get comprehensive moon data for a given instant and location.
+    /// Rise/set are for the local day containing `date`; distance comes from the Meeus ephemeris.
+    static func getMoonData(date: Date, lat: Double, lon: Double, timeZone: TimeZone) -> MoonData {
         let illumination = SunCalc.getMoonIllumination(timeAndDate: date)
         let position = SunCalc.getMoonPosition(timeAndDate: date, latitude: lat, longitude: lon)
-        let moonTimes = SunCalc.getMoonTimes(date: AstroDateHelper.localMidnight(for: date), latitude: lat, longitude: lon)
+        let riseSet = getMoonRiseSet(date: date, lat: lat, lon: lon, timeZone: timeZone)
 
         let phase = illumination.phase
         let fraction = illumination.fraction
@@ -42,14 +53,12 @@ enum MoonCalculator {
         let azimuthDeg = ((position.azimuth * 180.0 / .pi) + 180)
             .truncatingRemainder(dividingBy: 360)
 
-        let distance = position.distance
         let age = phase * synodicMonth
 
-        // Bright limb tilt angle for rendering
-        // Note: The Swift SunCalc package's MoonPosition does not expose parallacticAngle,
-        // so we approximate the tilt using just the illumination angle.
+        // Bright limb tilt as seen by the observer: illumination angle (from celestial north)
+        // minus the parallactic angle (zenith → celestial north). Same as the web app.
         let isWaxing = phase <= 0.5
-        let zenithAngleDeg = illumination.angle * 180.0 / .pi
+        let zenithAngleDeg = (illumination.angle - position.parallacticAngle) * 180.0 / .pi
         let tiltAngle = -zenithAngleDeg + (isWaxing ? -90 : 90)
 
         return MoonData(
@@ -57,13 +66,18 @@ enum MoonCalculator {
             phaseName: getPhaseName(phase),
             illumination: fraction * 100,
             age: age,
-            distance: distance,
+            distance: MoonEphemeris.distanceKm(at: date),
             emoji: getPhaseEmoji(phase),
             altitude: altitudeDeg,
             azimuth: azimuthDeg,
             tiltAngle: tiltAngle,
-            moonrise: moonTimes.rise,
-            moonset: moonTimes.set
+            moonrise: riseSet.rise,
+            moonset: riseSet.set
         )
+    }
+
+    /// Moon illumination percentage (SunCalc fraction × 100) at an instant.
+    static func illuminationPercent(at date: Date) -> Double {
+        SunCalc.getMoonIllumination(timeAndDate: date).fraction * 100
     }
 }

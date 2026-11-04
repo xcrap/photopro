@@ -5,14 +5,25 @@ struct MoonFullMoonsTab: View {
     @Environment(WeatherStore.self) private var weatherStore
 
     private var fullMoons: [FullMoonEvent] {
-        FullMoonFinder.findFullMoons(startDate: Date(), months: 12)
+        FullMoonFinder.findFullMoons(startDate: Date(), months: 12, timeZone: locationStore.timeZone)
+    }
+
+    /// Night weather at 22:00 local on the full moon's date (moon illumination computed for that hour).
+    private func weatherTime(for moon: FullMoonEvent) -> Date {
+        let timeZone = locationStore.timeZone
+        let calendar = AstroDateHelper.calendar(for: timeZone)
+        let midnight = AstroDateHelper.localMidnight(for: moon.date, in: timeZone)
+        return calendar.date(bySettingHour: 22, minute: 0, second: 0, of: midnight) ?? moon.date
     }
 
     var body: some View {
+        let timeZone = locationStore.timeZone
+
         LazyVStack(spacing: Theme.spacingMD) {
             ForEach(fullMoons) { moon in
                 HStack(spacing: Theme.spacingMD) {
                     MoonPhaseIcon(phase: 0.5, size: 40)
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
@@ -28,7 +39,7 @@ struct MoonFullMoonsTab: View {
                                     .clipShape(Capsule())
                             }
                         }
-                        Text(Formatting.formatDate(moon.date))
+                        Text(Formatting.formatDate(moon.date, timeZone: timeZone))
                             .font(.caption)
                             .foregroundStyle(Theme.mutedForeground)
                         if let distance = moon.distance {
@@ -40,11 +51,11 @@ struct MoonFullMoonsTab: View {
 
                     Spacer()
 
-                    if let score = weatherStore.getScoreForTime(moon.date, profile: .night) {
+                    if let score = weatherStore.getScoreForTime(weatherTime(for: moon), profile: .night) {
                         WeatherBadge(score: score.score, compact: true)
                     }
 
-                    Text(Formatting.formatDaysUntil(moon.date))
+                    Text(Formatting.formatDaysUntil(moon.date, timeZone: timeZone))
                         .font(.caption.weight(.medium).monospacedDigit())
                         .foregroundStyle(Theme.mutedForeground)
                 }

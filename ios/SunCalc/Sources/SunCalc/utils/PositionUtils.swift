@@ -31,6 +31,9 @@ class PositionUtils {
 		return Constants.RAD() * (280.16 + 360.9856235 * d) - lw
 	}
 
+    /// Atmospheric refraction in radians — JS suncalc 1.9 `astroRefraction`.
+    /// Formula 16.4 of Meeus: 1.02 / tan(h + 10.26 / (h + 5.10)) with h in degrees (arc minutes),
+    /// converted to radians. Only valid for positive altitudes, so negative ones are clamped to 0.
     class func getAstroRefraction(h: Double) -> Double {
         var hCalc: Double = h
         if hCalc < 0 {

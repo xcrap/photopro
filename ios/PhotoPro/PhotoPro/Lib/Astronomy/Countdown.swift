@@ -1,6 +1,6 @@
 import Foundation
 
-enum CountdownEventType: String {
+enum CountdownEventType: String, Sendable {
     case goldenHourAM = "golden-hour-am"
     case goldenHourPM = "golden-hour-pm"
     case blueHourAM = "blue-hour-am"
@@ -24,9 +24,21 @@ enum CountdownEventType: String {
         case .meteorShower: return "Meteor shower"
         }
     }
+
+    var icon: String {
+        switch self {
+        case .goldenHourAM, .goldenHourPM: return "camera.fill"
+        case .blueHourAM, .blueHourPM: return "paintbrush.fill"
+        case .sunrise: return "sunrise.fill"
+        case .sunset: return "sunset.fill"
+        case .moonrise: return "moonrise.fill"
+        case .moonset: return "moonset.fill"
+        case .meteorShower: return "sparkle"
+        }
+    }
 }
 
-struct CountdownEvent {
+struct CountdownEvent: Sendable {
     var type: CountdownEventType
     var label: String
     var time: Date
@@ -34,53 +46,80 @@ struct CountdownEvent {
 }
 
 enum Countdown {
-    /// Find the next upcoming event from sun times, moon data, and optionally meteor showers.
-    static func getNextEvent(
-        now: Date,
-        sunTimes: SunTimes,
-        moonData: MoonData,
-        latitude: Double? = nil
-    ) -> CountdownEvent? {
-        var candidates: [(type: CountdownEventType, time: Date, label: String?)] = [
+    private static let meteorMinZhr = 50
+    private static let meteorMaxDays: Double = 30
+
+    private typealias Candidate = (type: CountdownEventType, time: Date?, label: String?)
+
+    private static func dayCandidates(sunTimes: SunTimes, moonrise: Date?, moonset: Date?) -> [Candidate] {
+        [
             (.blueHourAM, sunTimes.blueHourMorningStart, nil),
             (.sunrise, sunTimes.sunrise, nil),
             (.goldenHourAM, sunTimes.goldenHourMorningStart, nil),
             (.goldenHourPM, sunTimes.goldenHourStart, nil),
             (.sunset, sunTimes.sunset, nil),
             (.blueHourPM, sunTimes.blueHourEveningStart, nil),
+            (.moonrise, moonrise, nil),
+            (.moonset, moonset, nil),
         ]
+    }
 
-        if let moonrise = moonData.moonrise {
-            candidates.append((.moonrise, moonrise, nil))
-        }
-        if let moonset = moonData.moonset {
-            candidates.append((.moonset, moonset, nil))
-        }
-
-        if let lat = latitude {
-            if let nextMeteor = MeteorCalculator.getNextMeteorShower(fromDate: now, userLatitude: lat) {
-                if nextMeteor.zhr >= 50 {
-                    let daysUntil = nextMeteor.peakDate.timeIntervalSince(now) / 86400
-                    if daysUntil <= 30 && daysUntil > 0 {
-                        candidates.append((.meteorShower, nextMeteor.peakDate, nextMeteor.name))
-                    }
-                }
+    private static func meteorCandidate(now: Date, latitude: Double, timeZone: TimeZone) -> Candidate? {
+        let shower = MeteorCalculator
+            .getUpcomingMeteorShowers(fromDate: now, months: 2, userLatitude: latitude, timeZone: timeZone)
+            .first { shower in
+                let daysUntil = shower.peakDate.timeIntervalSince(now) / 86400
+                return shower.zhr >= meteorMinZhr && daysUntil > 0 && daysUntil <= meteorMaxDays
             }
-        }
+        guard let shower else { return nil }
+        return (.meteorShower, shower.peakDate, shower.name)
+    }
 
+    private static func nearest(_ candidates: [Candidate], now: Date) -> CountdownEvent? {
         let future = candidates
-            .filter { $0.time > now }
+            .compactMap { c -> (type: CountdownEventType, time: Date, label: String?)? in
+                guard let time = c.time, time > now else { return nil } // absent events skipped
+                return (c.type, time, c.label)
+            }
             .sorted { $0.time < $1.time }
 
         guard let next = future.first else { return nil }
-
-        let secondsUntil = Int(next.time.timeIntervalSince(now))
-
         return CountdownEvent(
             type: next.type,
             label: next.label ?? next.type.label,
             time: next.time,
-            secondsUntil: secondsUntil
+            secondsUntil: Int(next.time.timeIntervalSince(now))
         )
+    }
+
+    /// Next event from one day's sun/moon data (plus an optional meteor shower).
+    static func getNextEvent(
+        now: Date,
+        sunTimes: SunTimes,
+        moonData: MoonData,
+        latitude: Double? = nil,
+        timeZone: TimeZone = .current
+    ) -> CountdownEvent? {
+        var candidates = dayCandidates(sunTimes: sunTimes, moonrise: moonData.moonrise, moonset: moonData.moonset)
+        if let latitude, let meteor = meteorCandidate(now: now, latitude: latitude, timeZone: timeZone) {
+            candidates.append(meteor)
+        }
+        return nearest(candidates, now: now)
+    }
+
+    /// Next photography event across today and tomorrow (location-local days),
+    /// plus ZHR ≥ 50 meteor showers peaking within 30 days (ALGORITHM.md → "Countdown").
+    static func getNextEvent(now: Date, latitude: Double, longitude: Double, timeZone: TimeZone) -> CountdownEvent? {
+        var candidates: [Candidate] = []
+        for dayOffset in 0...1 {
+            let day = AstroDateHelper.addDays(dayOffset, to: now, in: timeZone)
+            let sun = SunCalculator.getSunTimes(date: day, lat: latitude, lon: longitude, timeZone: timeZone)
+            let moon = MoonCalculator.getMoonRiseSet(date: day, lat: latitude, lon: longitude, timeZone: timeZone)
+            candidates.append(contentsOf: dayCandidates(sunTimes: sun, moonrise: moon.rise, moonset: moon.set))
+        }
+        if let meteor = meteorCandidate(now: now, latitude: latitude, timeZone: timeZone) {
+            candidates.append(meteor)
+        }
+        return nearest(candidates, now: now)
     }
 }

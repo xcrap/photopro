@@ -4,14 +4,15 @@
 
 ## Tech Stack
 - React 19 + Vite 7 + TypeScript 5.9 + Bun 1.3
-- shadcn/ui + Tailwind CSS v4 + Zustand 5 + SunCalc + date-fns + lucide-react
+- shadcn/ui + Tailwind CSS v4 + Zustand 5 + SunCalc + date-fns (+ @date-fns/tz) + lucide-react
 - Dark astronomy theme with pastel accents (oklch color space)
 
 ## Architecture
 - Feature modules in `src/features/` (home, moon, sun, settings)
 - Astronomy calculations: pure functions in `src/lib/astronomy/` (must match `ALGORITHM.md`)
 - Weather scoring: `src/lib/weather/scoring.ts` (must match `ALGORITHM.md`)
-- Pre-computed data: eclipse/supermoon JSON in `src/data/` (2024-2030)
+- Pre-computed data: eclipse/meteor/comet JSON in `src/data/` (2024-2030); supermoons are computed (`lib/astronomy/moon-ephemeris.ts`)
+- Times and days use the **location's** time zone (`useTimeZone()`, `lib/time/zone.ts`); always pass it to `formatTime`/`formatDate` and the astronomy calculators
 - Zustand stores with localStorage persistence in `src/stores/`
 - GPS-first location with manual fallback
 

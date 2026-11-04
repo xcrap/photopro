@@ -42,7 +42,10 @@ export function getNextEvent(
     type: NextEvent['type']
     time: Date
     label?: string
-  }> = [
+  }> = []
+
+  // Sun events may be absent on polar days — skip them.
+  const sunCandidates: Array<{ type: NextEvent['type']; time: Date | null }> = [
     { type: 'blue-hour-am', time: sunTimes.blueHourMorningStart },
     { type: 'sunrise', time: sunTimes.sunrise },
     { type: 'golden-hour-am', time: sunTimes.goldenHourMorningStart },
@@ -50,6 +53,9 @@ export function getNextEvent(
     { type: 'sunset', time: sunTimes.sunset },
     { type: 'blue-hour-pm', time: sunTimes.blueHourEveningStart },
   ]
+  for (const candidate of sunCandidates) {
+    if (candidate.time) candidates.push({ type: candidate.type, time: candidate.time })
+  }
 
   if (moonData.moonrise) {
     candidates.push({ type: 'moonrise', time: moonData.moonrise })

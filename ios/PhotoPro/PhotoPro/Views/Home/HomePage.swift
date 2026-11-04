@@ -1,9 +1,8 @@
+import Combine
 import SwiftUI
 
 struct HomePage: View {
     @Environment(LocationStore.self) private var locationStore
-    @Environment(SettingsStore.self) private var settingsStore
-    @Environment(WeatherStore.self) private var weatherStore
 
     @State private var selectedDate = Date()
     @State private var currentTime = Date()
@@ -14,19 +13,22 @@ struct HomePage: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.spacingXL) {
-                DateNavigator(selectedDate: $selectedDate)
+                NextEventCard(now: currentTime)
+                    .surfaceCard(accent: Theme.sunAccent)
                     .padding(.top, Theme.spacingSM)
 
-                SunCard(date: selectedDate, currentTime: currentTime)
+                DateNavigator(selectedDate: $selectedDate)
+
+                SunCard(date: selectedDate)
                     .surfaceCard(accent: Theme.sunAccent)
 
-                MoonCard(date: selectedDate, currentTime: currentTime)
+                MoonCard(date: selectedDate)
                     .surfaceCard(accent: Theme.moonAccent)
 
                 WeatherCard()
                     .surfaceCard()
 
-                UpcomingEventsList(date: selectedDate)
+                UpcomingEventsList(date: selectedDate, now: currentTime)
                     .surfaceCard()
             }
             .padding(.horizontal, Theme.spacingLG)
@@ -45,6 +47,8 @@ struct HomePage: View {
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(locationStore.gpsStatus == .granted ? .green : (locationStore.gpsStatus == .denied ? .red : Theme.mutedForeground))
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("GPS \(locationStore.gpsEnabled ? locationStore.gpsStatus.rawValue : "off")")
             }
             .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .topBarTrailing) {
@@ -62,18 +66,72 @@ struct HomePage: View {
         .onReceive(timer) { _ in
             currentTime = Date()
         }
-        .task {
-            if weatherStore.forecast == nil {
-                await weatherStore.fetchForecast(
-                    latitude: locationStore.latitude,
-                    longitude: locationStore.longitude
-                )
-            }
-            weatherStore.startAutoRefresh(
-                latitude: locationStore.latitude,
-                longitude: locationStore.longitude
-            )
+        .onAppear {
+            currentTime = Date()
         }
+    }
+}
+
+// MARK: - Next Event (countdown)
+
+/// Next photography event across today and tomorrow, refreshed by the 30 s timer
+/// (ALGORITHM.md → "Countdown").
+struct NextEventCard: View {
+    let now: Date
+
+    @Environment(LocationStore.self) private var locationStore
+    @Environment(SettingsStore.self) private var settingsStore
+
+    var body: some View {
+        let timeZone = locationStore.timeZone
+        let event = Countdown.getNextEvent(
+            now: now,
+            latitude: locationStore.latitude,
+            longitude: locationStore.longitude,
+            timeZone: timeZone
+        )
+
+        HStack(spacing: Theme.spacingMD) {
+            Image(systemName: event?.type.icon ?? "clock")
+                .font(.callout)
+                .foregroundStyle(Theme.sunAccent)
+                .frame(width: 36, height: 36)
+                .background(Theme.sunAccent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSM))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Next event")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.mutedForeground)
+                Text(event?.label ?? "No upcoming events")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.foreground)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if let event {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(Formatting.formatCountdown(seconds: event.secondsUntil))
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.sunAccent)
+                    Text(eventTimeLabel(event, timeZone: timeZone))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func eventTimeLabel(_ event: CountdownEvent, timeZone: TimeZone) -> String {
+        if event.type == .meteorShower {
+            return Formatting.formatRelativeDay(event.time, from: now, timeZone: timeZone)
+        }
+        let time = Formatting.formatTime(event.time, format: settingsStore.timeFormat, timeZone: timeZone)
+        return AstroDateHelper.isSameDay(event.time, now, in: timeZone) ? time : "Tomorrow \(time)"
     }
 }
 
@@ -81,16 +139,17 @@ struct HomePage: View {
 
 struct SunCard: View {
     let date: Date
-    let currentTime: Date
 
     @Environment(LocationStore.self) private var locationStore
     @Environment(SettingsStore.self) private var settingsStore
 
-    private var sunTimes: SunTimes {
-        SunCalculator.getSunTimes(date: date, lat: locationStore.latitude, lon: locationStore.longitude)
-    }
-
     var body: some View {
+        let timeZone = locationStore.timeZone
+        let sunTimes = SunCalculator.getSunTimes(
+            date: date, lat: locationStore.latitude, lon: locationStore.longitude, timeZone: timeZone
+        )
+        let fmt: (Date?) -> String = { Formatting.formatTime($0, format: settingsStore.timeFormat, timeZone: timeZone) }
+
         VStack(alignment: .leading, spacing: 0) {
             // Title
             HStack {
@@ -102,18 +161,37 @@ struct SunCard: View {
             }
             .padding(.bottom, Theme.spacingLG)
 
+            if let message = sunTimes.polarState.message {
+                PolarNotice(message: message)
+                    .padding(.bottom, Theme.spacingSM)
+            }
+
             // InfoRows
             VStack(spacing: 0) {
-                InfoRow(icon: "sunrise", label: "Sunrise",
-                        value: Formatting.formatTime(sunTimes.sunrise, format: settingsStore.timeFormat))
+                InfoRow(icon: "sunrise", label: "Sunrise", value: fmt(sunTimes.sunrise))
                 Divider().opacity(0.1)
-                InfoRow(icon: "sunset", label: "Sunset",
-                        value: Formatting.formatTime(sunTimes.sunset, format: settingsStore.timeFormat))
+                InfoRow(icon: "sunset", label: "Sunset", value: fmt(sunTimes.sunset))
                 Divider().opacity(0.1)
                 InfoRow(icon: "camera", label: "Golden Hour",
-                        value: "\(Formatting.formatTime(sunTimes.goldenHourStart, format: settingsStore.timeFormat)) – \(Formatting.formatTime(sunTimes.sunset, format: settingsStore.timeFormat))")
+                        value: Formatting.formatTimeRange(sunTimes.goldenHourStart, sunTimes.goldenHourEnd,
+                                                          format: settingsStore.timeFormat, timeZone: timeZone))
             }
         }
+    }
+}
+
+/// "Sun stays up all day" / "Sun stays below the horizon" banner for polar days and nights.
+struct PolarNotice: View {
+    let message: String
+
+    var body: some View {
+        Label(message, systemImage: "globe.europe.africa")
+            .font(.caption)
+            .foregroundStyle(Theme.sunAccent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Theme.sunAccent.opacity(0.1))
+            .clipShape(Capsule())
     }
 }
 
@@ -121,21 +199,16 @@ struct SunCard: View {
 
 struct MoonCard: View {
     let date: Date
-    let currentTime: Date
 
     @Environment(LocationStore.self) private var locationStore
     @Environment(SettingsStore.self) private var settingsStore
 
-    private var moonData: MoonData {
-        MoonCalculator.getMoonData(date: date, lat: locationStore.latitude, lon: locationStore.longitude)
-    }
-
-    private var nextFullMoon: FullMoonEvent? {
-        FullMoonFinder.findFullMoons(startDate: date, months: 3).first { $0.date > date }
-    }
-
     var body: some View {
-        let moon = moonData
+        let timeZone = locationStore.timeZone
+        let moon = MoonCalculator.getMoonData(
+            date: date, lat: locationStore.latitude, lon: locationStore.longitude, timeZone: timeZone
+        )
+        let nextFullMoon = FullMoonFinder.findFullMoons(startDate: date, months: 2, timeZone: timeZone).first
 
         VStack(alignment: .leading, spacing: 0) {
             // Title
@@ -151,12 +224,13 @@ struct MoonCard: View {
             // Phase icon + name
             HStack(spacing: Theme.spacingXL) {
                 MoonPhaseIcon(phase: moon.phase, size: 56, tiltAngle: moon.tiltAngle)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(moon.phaseName)
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(Theme.foreground)
-                    Text("\(Int(moon.illumination))% illuminated")
+                    Text("\(Int(moon.illumination.rounded()))% illuminated")
                         .font(.caption)
                         .foregroundStyle(Theme.mutedForeground)
                 }
@@ -167,14 +241,14 @@ struct MoonCard: View {
             // InfoRows
             VStack(spacing: 0) {
                 InfoRow(icon: "moon.fill", label: "Moonrise",
-                        value: moon.moonrise != nil ? Formatting.formatTime(moon.moonrise!, format: settingsStore.timeFormat) : "—")
+                        value: Formatting.formatTime(moon.moonrise, format: settingsStore.timeFormat, timeZone: timeZone))
                 Divider().opacity(0.1)
                 InfoRow(icon: "moon.fill", label: "Moonset",
-                        value: moon.moonset != nil ? Formatting.formatTime(moon.moonset!, format: settingsStore.timeFormat) : "—")
+                        value: Formatting.formatTime(moon.moonset, format: settingsStore.timeFormat, timeZone: timeZone))
                 if let fm = nextFullMoon {
                     Divider().opacity(0.1)
                     InfoRow(icon: "calendar", label: "Next Full Moon",
-                            value: "\(Formatting.formatDateShort(fm.date)) · \(fm.folkName)")
+                            value: "\(Formatting.formatDateShort(fm.date, timeZone: timeZone)) · \(fm.folkName)\(fm.isSupermoon ? " · Supermoon" : "")")
                 }
             }
         }
@@ -198,15 +272,21 @@ struct WeatherCard: View {
             }
             .padding(.bottom, Theme.spacingLG)
 
-            if weatherStore.isLoading {
+            if weatherStore.forecast == nil && weatherStore.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding()
-            } else if let error = weatherStore.error {
+            } else if weatherStore.forecast == nil, let error = weatherStore.error {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
             } else {
+                if let error = weatherStore.error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.scoreFair)
+                        .padding(.bottom, Theme.spacingSM)
+                }
                 let topDays = weatherStore.getTopDays(count: 3)
                 if topDays.isEmpty {
                     Text("No good or excellent days in this forecast")
@@ -231,11 +311,14 @@ struct WeatherCard: View {
 struct WeatherDayRow: View {
     let day: DailyPhotoScore
 
+    @Environment(LocationStore.self) private var locationStore
+
     var body: some View {
-        let isToday = Calendar.current.isDateInToday(day.displayDate)
+        let timeZone = locationStore.timeZone
+        let isToday = AstroDateHelper.isToday(day.displayDate, in: timeZone)
 
         HStack(spacing: Theme.spacingSM) {
-            Text(isToday ? "Today" : Formatting.formatDateShort(day.displayDate))
+            Text(isToday ? "Today" : Formatting.formatDateShort(day.displayDate, timeZone: timeZone))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(isToday ? Theme.scoreGood : Theme.foreground.opacity(0.8))
                 .frame(width: 54, alignment: .leading)
@@ -273,22 +356,30 @@ struct WeatherDayRow: View {
 
 struct UpcomingEventsList: View {
     let date: Date
+    let now: Date
 
     @Environment(LocationStore.self) private var locationStore
-    @Environment(WeatherStore.self) private var weatherStore
+    /// 90-day proximity scan, recomputed off the main thread only when the day or location changes.
+    @State private var proximityEvents: [ProximityEvent] = []
 
-    private var fullMoons: [FullMoonEvent] {
-        FullMoonFinder.findFullMoons(startDate: date, months: 3)
-    }
-
-    private var proximityEvents: [ProximityEvent] {
-        ProximityFinder.findProximityEvents(
-            startDate: date, days: 90,
-            lat: locationStore.latitude, lon: locationStore.longitude
-        )
+    private var scanKey: String {
+        let timeZone = locationStore.timeZone
+        let day = Formatting.string(from: max(date, now), pattern: "yyyy-MM-dd", timeZone: timeZone)
+        return "\(locationStore.coordinateKey)|\(timeZone.identifier)|\(day)"
     }
 
     var body: some View {
+        let timeZone = locationStore.timeZone
+        // Events after the selected moment (or after now when viewing today).
+        let reference = max(date, now)
+        let nextFullMoon = FullMoonFinder.findFullMoons(startDate: reference, months: 2, timeZone: timeZone).first
+        // Filter on the Sun event time, not the day's midnight, so tonight's pair is included.
+        let nextProximity = proximityEvents.first { $0.sunTime > reference }
+        let nextMeteor = MeteorCalculator.getNextMeteorShower(
+            fromDate: reference, userLatitude: locationStore.latitude, timeZone: timeZone
+        )
+        let nextComet = CometCalculator.getComets(userLatitude: locationStore.latitude, now: now).first
+
         VStack(alignment: .leading, spacing: 0) {
             // Title
             HStack {
@@ -300,18 +391,13 @@ struct UpcomingEventsList: View {
             }
             .padding(.bottom, Theme.spacingLG)
 
-            let nextFullMoon = fullMoons.first { $0.date > date }
-            let nextProximity = proximityEvents.first { $0.date > date }
-            let nextMeteor = MeteorCalculator.getNextMeteorShower(fromDate: date, userLatitude: locationStore.latitude)
-
-            let hasEvents = nextFullMoon != nil || nextProximity != nil || nextMeteor != nil
+            let hasEvents = nextFullMoon != nil || nextProximity != nil || nextMeteor != nil || nextComet != nil
 
             if hasEvents {
                 VStack(spacing: 0) {
                     if let fm = nextFullMoon {
                         UpcomingRow(
                             date: fm.date,
-                            referenceDate: date,
                             icon: "moon.fill",
                             iconColor: Theme.moonAccent,
                             iconBg: Theme.moonAccent.opacity(0.08),
@@ -322,8 +408,7 @@ struct UpcomingEventsList: View {
 
                     if let prox = nextProximity {
                         UpcomingRow(
-                            date: prox.date,
-                            referenceDate: date,
+                            date: prox.sunTime,
                             icon: "camera.fill",
                             iconColor: Theme.proximityAccent,
                             iconBg: Theme.proximityAccent.opacity(0.08),
@@ -335,12 +420,22 @@ struct UpcomingEventsList: View {
                     if let meteor = nextMeteor {
                         UpcomingRow(
                             date: meteor.peakDate,
-                            referenceDate: date,
                             icon: "sparkle",
                             iconColor: Color(red: 0.49, green: 0.42, blue: 0.95),
                             iconBg: Color(red: 0.49, green: 0.42, blue: 0.95).opacity(0.1),
                             title: meteor.name,
                             subtitle: "Meteor Shower · ZHR \(meteor.zhr)"
+                        )
+                    }
+
+                    if let comet = nextComet {
+                        UpcomingRow(
+                            date: comet.isActive ? now : comet.peakDate,
+                            icon: "wind",
+                            iconColor: Theme.cometAccent,
+                            iconBg: Theme.cometAccent.opacity(0.08),
+                            title: comet.name,
+                            subtitle: comet.isActive ? "Comet · visible now" : "Comet · \(comet.magnitudeRating)"
                         )
                     }
                 }
@@ -352,6 +447,15 @@ struct UpcomingEventsList: View {
                     .padding(.vertical, Theme.spacingXL)
             }
         }
+        .task(id: scanKey) {
+            let start = max(date, now)
+            let lat = locationStore.latitude
+            let lon = locationStore.longitude
+            let timeZone = locationStore.timeZone
+            proximityEvents = await Task.detached(priority: .userInitiated) {
+                ProximityFinder.findProximityEvents(startDate: start, days: 90, lat: lat, lon: lon, timeZone: timeZone)
+            }.value
+        }
     }
 }
 
@@ -359,19 +463,21 @@ struct UpcomingEventsList: View {
 
 struct UpcomingRow: View {
     let date: Date
-    let referenceDate: Date
     let icon: String
     let iconColor: Color
     let iconBg: Color
     let title: String
     let subtitle: String
 
+    @Environment(LocationStore.self) private var locationStore
+
     var body: some View {
-        let isToday = Calendar.current.isDateInToday(date)
+        let timeZone = locationStore.timeZone
+        let isToday = AstroDateHelper.isToday(date, in: timeZone)
 
         HStack(spacing: Theme.spacingMD) {
             // Date column
-            Text(isToday ? "Today" : Formatting.formatDateShort(date))
+            Text(isToday ? "Today" : Formatting.formatDateShort(date, timeZone: timeZone))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(isToday ? Color(red: 0.49, green: 0.73, blue: 0.95) : Theme.foreground.opacity(0.8))
                 .frame(width: 56, alignment: .leading)

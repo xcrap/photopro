@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "2P",
+    "name": "Comet Encke (2P/Encke)",
+    "peakStart": "2027-01-15T00:00:00Z",
+    "peakEnd": "2027-02-01T00:00:00Z",
+    "peakDate": "2027-01-27T18:00:00Z",
+    "magnitude": 6,
+    "visibility": {
+      "hemisphere": "northern",
+      "declinationRange": { "min": -7, "max": 2 }
+    },
+    "bestViewingTime": "Early evening, soon after dusk",
+    "direction": "West-southwest, low",
+    "description": "Short-period comet (3.3-year orbit) on its best return for northern observers since 2003. Predicted to brighten rapidly through January to about magnitude 5-7 (binoculars) in Aquarius, low in the evening twilight. Perihelion is on 10 February 2027, by which time it is lost in the Sun's glare. Comet brightness predictions are uncertain."
+  }
+]

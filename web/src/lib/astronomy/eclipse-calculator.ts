@@ -96,18 +96,19 @@ export function getVisibilityForLocation(
   lon: number,
 ): number {
   const overrideVisibility = getSaoMiguelPreciseOverride(eclipse, lat, lon)
-  let bestVisibility = overrideVisibility ?? 0
+  if (overrideVisibility !== null) return overrideVisibility
 
+  // Lunar eclipses: the moon just has to be above the horizon (altitude sampling).
+  if (eclipse.category === 'lunar') {
+    return getLocalLunarVisibility(eclipse, lat, lon)
+  }
+
+  let bestVisibility = 0
   for (const region of eclipse.visibility) {
     if (isWithinBounds(lat, lon, region.bounds)) {
       bestVisibility = Math.max(bestVisibility, region.percentage)
     }
   }
-
-  if (eclipse.category === 'lunar') {
-    bestVisibility = Math.max(bestVisibility, getLocalLunarVisibility(eclipse, lat, lon))
-  }
-
   return bestVisibility
 }
 

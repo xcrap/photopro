@@ -5,27 +5,28 @@ struct MoonOpportunitiesTab: View {
     @Environment(WeatherStore.self) private var weatherStore
     @Environment(SettingsStore.self) private var settingsStore
     @State private var goodWeatherOnly = false
+    /// 365-day scan, recomputed off the main thread only when the day or location changes.
+    @State private var events: [ProximityEvent] = []
+    @State private var isScanning = true
 
-    private var events: [ProximityEvent] {
-        ProximityFinder.findProximityEvents(
-            startDate: Date(), days: 365,
-            lat: locationStore.latitude, lon: locationStore.longitude
-        )
+    private var scanKey: String {
+        let timeZone = locationStore.timeZone
+        let day = Formatting.string(from: Date(), pattern: "yyyy-MM-dd", timeZone: timeZone)
+        return "\(locationStore.coordinateKey)|\(timeZone.identifier)|\(day)"
     }
 
-    private var filtered: [ProximityEvent] {
-        if goodWeatherOnly {
-            return events.filter { event in
-                if let score = weatherStore.getScoreForTime(event.date, profile: .sunset) {
-                    return score.score >= 70
-                }
-                return false
-            }
-        }
-        return events
+    /// Weather for an opportunity = sunset profile at the Sun event time (ALGORITHM.md → "Opportunity ranking").
+    private func weatherScore(for event: ProximityEvent) -> ScoredConditions? {
+        weatherStore.getScoreForTime(event.sunTime, profile: .sunset, moonIllumination: event.moonIllumination)
     }
 
     var body: some View {
+        let now = Date()
+        let upcoming = events.filter { $0.sunTime > now }
+        let filtered = goodWeatherOnly
+            ? upcoming.filter { (weatherScore(for: $0)?.score ?? 0) >= 70 }
+            : upcoming
+
         VStack(spacing: Theme.spacingLG) {
             // Header row
             HStack {
@@ -42,7 +43,11 @@ struct MoonOpportunitiesTab: View {
                     .tint(.green)
             }
 
-            if filtered.isEmpty {
+            if isScanning && events.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+            } else if filtered.isEmpty {
                 VStack(spacing: Theme.spacingSM) {
                     Image(systemName: "camera")
                         .font(.largeTitle)
@@ -63,19 +68,30 @@ struct MoonOpportunitiesTab: View {
                 }
             }
         }
+        .task(id: scanKey) {
+            isScanning = true
+            let lat = locationStore.latitude
+            let lon = locationStore.longitude
+            let timeZone = locationStore.timeZone
+            events = await Task.detached(priority: .userInitiated) {
+                ProximityFinder.findProximityEvents(startDate: Date(), days: 365, lat: lat, lon: lon, timeZone: timeZone)
+            }.value
+            isScanning = false
+        }
     }
 
     // MARK: - Card
 
     @ViewBuilder
     private func opportunityCard(_ event: ProximityEvent) -> some View {
-        let weatherScore = weatherStore.getScoreForTime(event.date, profile: .sunset)
-        let combined = combinedScore(event: event, weather: weatherScore?.score)
+        let weather = weatherScore(for: event)
+        let combined = combinedScore(event: event, weather: weather?.score)
+        let timeZone = locationStore.timeZone
 
         VStack(alignment: .leading, spacing: 12) {
             // Row 1: Date + badges
             HStack(alignment: .center) {
-                Text(Formatting.formatDate(event.date))
+                Text(Formatting.formatDate(event.date, timeZone: timeZone))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.foreground)
 
@@ -109,7 +125,7 @@ struct MoonOpportunitiesTab: View {
                 Text("  |  ").foregroundStyle(.white.opacity(0.1))
                 Text("\(Int(event.timeDiffMinutes.rounded())) min gap")
                 Text("  |  ").foregroundStyle(.white.opacity(0.1))
-                Text("\(Int(event.moonIllumination))% lit")
+                Text("\(Int(event.moonIllumination.rounded()))% lit")
             }
             .font(.caption.monospacedDigit())
             .foregroundStyle(Theme.foreground.opacity(0.7))
@@ -135,7 +151,7 @@ struct MoonOpportunitiesTab: View {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(Theme.mutedForeground.opacity(0.7))
-            Text(Formatting.formatTime(time, format: settingsStore.timeFormat))
+            Text(Formatting.formatTime(time, format: settingsStore.timeFormat, timeZone: locationStore.timeZone))
                 .font(.title3.weight(.semibold).monospacedDigit())
                 .foregroundStyle(Theme.foreground)
         }

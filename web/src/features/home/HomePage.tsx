@@ -12,33 +12,57 @@ import { useWeatherStore } from '@/stores/weather-store'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
 import { useNextEvent } from '@/hooks/useNextEvent'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
-import { getSunTimes } from '@/lib/astronomy/sun-calculator'
+import { getPolarLabel, getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { findProximityEvents } from '@/lib/astronomy/proximity-finder'
 import { findFullMoons } from '@/lib/astronomy/full-moon-finder'
 import { getNextMeteorShower } from '@/lib/astronomy/meteor-calculator'
 import { getComets } from '@/lib/astronomy/comet-calculator'
 import { getWeatherProfileForProximityEvent } from '@/lib/weather/scoring'
-import { isToday as isTodayFns, differenceInMinutes } from 'date-fns'
-import { formatTime, formatDateShort } from '@/lib/formatting'
+import { differenceInMinutes } from 'date-fns'
+import { formatTime, formatTimeRange, formatDateShort } from '@/lib/formatting'
+import { localDayDifference, localTimeOnDay } from '@/lib/time/zone'
 
 export function HomePage() {
-  const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
+  const { selectedDate, selectedDayStart, timeZone, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
   const { nextEvent, countdown } = useNextEvent()
-  const { latitude, longitude } = useLocationStore()
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
   const { timeFormat } = useSettingsStore()
   const dailyScores = useWeatherStore((state) => state.dailyScores)
+  const forecast = useWeatherStore((state) => state.forecast)
   const fetchForecast = useWeatherStore((state) => state.fetchForecast)
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
 
-  const moonData = useMemo(() => getMoonData(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
-  const sunTimes = useMemo(() => getSunTimes(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
+  // Countdown for sun events within 2 hours
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const isSameLocalDay = (date: Date) => localDayDifference(date, now, timeZone) === 0
+
+  const moonData = useMemo(
+    () => getMoonData(selectedDate, latitude, longitude, timeZone),
+    [selectedDate, latitude, longitude, timeZone],
+  )
+  const sunTimes = useMemo(
+    () => getSunTimes(selectedDate, latitude, longitude, timeZone),
+    [selectedDate, latitude, longitude, timeZone],
+  )
+  const polarLabel = getPolarLabel(sunTimes.polar)
+  const proximityEvents = useMemo(
+    () => findProximityEvents(selectedDayStart, 90, latitude, longitude, timeZone),
+    [selectedDayStart, latitude, longitude, timeZone],
+  )
+  // Skip opportunities earlier today that have already passed.
   const nextProximity = useMemo(
-    () => findProximityEvents(selectedDate, 90, latitude, longitude)[0] ?? null,
-    [selectedDate, latitude, longitude],
+    () => proximityEvents.find((event) => !isToday || event.sunTime.getTime() > now.getTime()) ?? null,
+    [proximityEvents, isToday, now],
   )
   const nextFullMoon = useMemo(
-    () => findFullMoons(selectedDate, 2)[0] ?? null,
-    [selectedDate],
+    () => findFullMoons(selectedDayStart, 2, timeZone)[0] ?? null,
+    [selectedDayStart, timeZone],
   )
   const bestDays = useMemo(
     () =>
@@ -50,8 +74,8 @@ export function HomePage() {
   )
 
   const nextMeteorShower = useMemo(
-    () => getNextMeteorShower(selectedDate, latitude),
-    [selectedDate, latitude],
+    () => getNextMeteorShower(selectedDayStart, latitude),
+    [selectedDayStart, latitude],
   )
 
   const activeComets = useMemo(
@@ -60,34 +84,25 @@ export function HomePage() {
   )
 
   const nextFullMoonWeather = useMemo(() => {
-    if (!nextFullMoon) return null
-    const eventTime = new Date(nextFullMoon.date)
-    eventTime.setHours(22, 0, 0, 0)
-    return getScoreForTime(eventTime, 'night')
-  }, [getScoreForTime, nextFullMoon])
+    if (!nextFullMoon || !forecast) return null
+    return getScoreForTime(localTimeOnDay(nextFullMoon.date, timeZone, 22), 'night')
+  }, [getScoreForTime, nextFullMoon, forecast, timeZone])
 
   const nextProximityWeather = useMemo(() => {
-    if (!nextProximity) return null
+    if (!nextProximity || !forecast) return null
     const profile = getWeatherProfileForProximityEvent(nextProximity)
     return getScoreForTime(nextProximity.sunTime, profile, nextProximity.moonIllumination)
-  }, [getScoreForTime, nextProximity])
+  }, [getScoreForTime, nextProximity, forecast])
 
   const upcomingEvents = useMemo(() => {
     const events: { type: string; date: Date; key: string }[] = []
     if (nextFullMoon) events.push({ type: 'fullmoon', date: new Date(nextFullMoon.date), key: 'fullmoon' })
-    if (nextProximity) events.push({ type: 'proximity', date: new Date(nextProximity.date), key: 'proximity' })
+    if (nextProximity) events.push({ type: 'proximity', date: nextProximity.sunTime, key: 'proximity' })
     if (nextMeteorShower) events.push({ type: 'meteor', date: nextMeteorShower.peakDate, key: 'meteor' })
     const comet = activeComets[0]
     if (comet) events.push({ type: 'comet', date: comet.isActive ? new Date(0) : comet.peakDateParsed, key: comet.id })
     return events.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [nextFullMoon, nextProximity, nextMeteorShower, activeComets])
-
-  // Countdown for sun events within 2 hours
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000)
-    return () => clearInterval(id)
-  }, [])
 
   const sunCountdowns = useMemo(() => {
     if (!isToday) return { sunrise: null, sunset: null, goldenHour: null }
@@ -98,6 +113,7 @@ export function HomePage() {
     ] as const
     const result: Record<string, string | null> = { sunrise: null, sunset: null, goldenHour: null }
     for (const { key, time } of events) {
+      if (!time) continue
       const diff = differenceInMinutes(time, now)
       if (diff > 0 && diff <= 120) {
         if (diff >= 60) {
@@ -125,6 +141,7 @@ export function HomePage() {
           action={
             <DateNavigator
               date={selectedDate}
+              timeZone={timeZone}
               isToday={isToday}
               onPrevious={goToPreviousDay}
               onNext={goToNextDay}
@@ -155,7 +172,7 @@ export function HomePage() {
                   {sunCountdowns.sunrise && (
                     <span className="text-xs font-normal text-amber-400/70">{sunCountdowns.sunrise}</span>
                   )}
-                  <span>{formatTime(sunTimes.sunrise, timeFormat)}</span>
+                  <span>{formatTime(sunTimes.sunrise, timeFormat, timeZone)}</span>
                 </span>
               }
               icon={<Sun className="h-3.5 w-3.5 text-amber-400/80" />}
@@ -167,7 +184,7 @@ export function HomePage() {
                   {sunCountdowns.sunset && (
                     <span className="text-xs font-normal text-orange-400/70">{sunCountdowns.sunset}</span>
                   )}
-                  <span>{formatTime(sunTimes.sunset, timeFormat)}</span>
+                  <span>{formatTime(sunTimes.sunset, timeFormat, timeZone)}</span>
                 </span>
               }
               icon={<Sun className="h-3.5 w-3.5 text-orange-400/80" />}
@@ -179,11 +196,14 @@ export function HomePage() {
                   {sunCountdowns.goldenHour && (
                     <span className="text-xs font-normal text-yellow-400/70">{sunCountdowns.goldenHour}</span>
                   )}
-                  <span>{`${formatTime(sunTimes.goldenHourStart, timeFormat)} – ${formatTime(sunTimes.sunset, timeFormat)}`}</span>
+                  <span>{formatTimeRange(sunTimes.goldenHourStart, sunTimes.sunset, timeFormat, timeZone)}</span>
                 </span>
               }
               icon={<Camera className="h-3.5 w-3.5 text-yellow-400/70" />}
             />
+            {polarLabel && (
+              <p className="pt-1 text-xs text-muted-foreground">{polarLabel}</p>
+            )}
           </div>
         </div>
       </Link>
@@ -214,18 +234,18 @@ export function HomePage() {
           <div className="mt-1 space-y-0">
             <InfoRow
               label="Moonrise"
-              value={moonData.moonrise ? formatTime(moonData.moonrise, timeFormat) : '—'}
+              value={formatTime(moonData.moonrise, timeFormat, timeZone)}
               icon={<Moon className="h-3.5 w-3.5 text-moon/60" />}
             />
             <InfoRow
               label="Moonset"
-              value={moonData.moonset ? formatTime(moonData.moonset, timeFormat) : '—'}
+              value={formatTime(moonData.moonset, timeFormat, timeZone)}
               icon={<Moon className="h-3.5 w-3.5 text-muted-foreground/40" />}
             />
             {nextFullMoon && (
               <InfoRow
                 label="Next Full Moon"
-                value={`${formatDateShort(nextFullMoon.date)} · ${nextFullMoon.folkName}`}
+                value={`${formatDateShort(nextFullMoon.date, timeZone)} · ${nextFullMoon.folkName}`}
                 icon={<Calendar className="h-3.5 w-3.5 text-moon/40" />}
               />
             )}
@@ -257,17 +277,17 @@ export function HomePage() {
 
           <div className="divide-y divide-white/4 overflow-hidden rounded-xl border border-white/4">
             {bestDays.map((day) => {
-              const dayIsToday = isTodayFns(day.date)
+              const dayIsToday = isSameLocalDay(day.date)
               return (
                 <div
                   key={day.date.toISOString()}
                   className={`flex items-center gap-3 px-4 py-3 ${dayIsToday ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}
                 >
                   <p className={`w-16 shrink-0 text-sm font-medium ${dayIsToday ? 'text-sky-300' : 'text-foreground/80'}`}>
-                    {dayIsToday ? 'Today' : formatDateShort(day.date)}
+                    {dayIsToday ? 'Today' : formatDateShort(day.date, timeZone)}
                   </p>
-                  <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{day.summary}</p>
-                  <span className="rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums">
+                  <p className="min-w-0 flex-1 text-sm leading-snug text-muted-foreground line-clamp-2">{day.summary}</p>
+                  <span className="shrink-0 rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums">
                     {day.icon} {day.label} {day.score}/100
                   </span>
                 </div>
@@ -296,11 +316,11 @@ export function HomePage() {
           <div className="divide-y divide-white/4 overflow-hidden rounded-xl border border-white/4">
             {upcomingEvents.map((event) => {
               if (event.type === 'fullmoon' && nextFullMoon) {
-                const today = isTodayFns(nextFullMoon.date)
+                const today = isSameLocalDay(nextFullMoon.date)
                 return (
                   <div key={event.key} className={`flex items-center gap-3 px-4 py-3 ${today ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}>
                     <p className={`w-16 shrink-0 text-sm font-medium ${today ? 'text-sky-300' : 'text-foreground/80'}`}>
-                      {today ? 'Today' : formatDateShort(nextFullMoon.date)}
+                      {today ? 'Today' : formatDateShort(nextFullMoon.date, timeZone)}
                     </p>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-moon/8">
                       <Moon className="h-4 w-4 text-moon" />
@@ -316,32 +336,32 @@ export function HomePage() {
                 )
               }
               if (event.type === 'proximity' && nextProximity) {
-                const today = isTodayFns(new Date(nextProximity.date))
+                const today = isSameLocalDay(nextProximity.sunTime)
                 return (
                   <div key={event.key} className={`flex items-center gap-3 px-4 py-3 ${today ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}>
                     <p className={`w-16 shrink-0 text-sm font-medium ${today ? 'text-sky-300' : 'text-foreground/80'}`}>
-                      {today ? 'Today' : formatDateShort(nextProximity.date)}
+                      {today ? 'Today' : formatDateShort(nextProximity.sunTime, timeZone)}
                     </p>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-proximity/8">
                       <Camera className="h-4 w-4 text-proximity" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">Photo Opportunity</p>
-                      <p className="truncate text-xs text-muted-foreground">{nextProximity.description}</p>
+                      <p className="text-xs leading-snug text-muted-foreground line-clamp-2">{nextProximity.description}</p>
                     </div>
                     <WeatherBadge score={nextProximityWeather} />
-                    <span className="rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums text-proximity">
-                      {formatTime(nextProximity.moonTime, timeFormat)}
+                    <span className="shrink-0 rounded-lg border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-semibold tabular-nums text-proximity">
+                      {formatTime(nextProximity.moonTime, timeFormat, timeZone)}
                     </span>
                   </div>
                 )
               }
               if (event.type === 'meteor' && nextMeteorShower) {
-                const today = isTodayFns(nextMeteorShower.peakDate)
+                const today = isSameLocalDay(nextMeteorShower.peakDate)
                 return (
                   <div key={event.key} className={`flex items-center gap-3 px-4 py-3 ${today ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}>
                     <p className={`w-16 shrink-0 text-sm font-medium ${today ? 'text-sky-300' : 'text-foreground/80'}`}>
-                      {today ? 'Today' : formatDateShort(nextMeteorShower.peakDate)}
+                      {today ? 'Today' : formatDateShort(nextMeteorShower.peakDate, timeZone)}
                     </p>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-400/10">
                       <Sparkles className="h-4 w-4 text-indigo-400" />
@@ -361,11 +381,11 @@ export function HomePage() {
               if (event.type === 'comet') {
                 const comet = activeComets[0]
                 if (!comet) return null
-                const today = !comet.isActive && isTodayFns(comet.peakDateParsed)
+                const today = !comet.isActive && isSameLocalDay(comet.peakDateParsed)
                 return (
                   <div key={event.key} className={`flex items-center gap-3 px-4 py-3 ${today ? 'bg-sky-400/8 border-l-2 border-l-sky-400/60' : ''}`}>
                     <p className={`w-16 shrink-0 text-sm font-medium ${today ? 'text-sky-300' : 'text-foreground/80'}`}>
-                      {today ? 'Today' : comet.isActive ? 'Now' : formatDateShort(comet.peakDateParsed)}
+                      {today ? 'Today' : comet.isActive ? 'Now' : formatDateShort(comet.peakDateParsed, timeZone)}
                     </p>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10">
                       <Orbit className="h-4 w-4 text-cyan-400" />

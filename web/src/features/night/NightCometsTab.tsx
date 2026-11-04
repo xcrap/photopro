@@ -5,10 +5,14 @@ import { useLocationStore } from '@/stores/location-store'
 import { useWeatherStore } from '@/stores/weather-store'
 import { getComets, getMagnitudeRating } from '@/lib/astronomy/comet-calculator'
 import { formatDate } from '@/lib/formatting'
+import { useTimeZone } from '@/hooks/useTimeZone'
 
 export function NightCometsTab() {
-  const { latitude } = useLocationStore()
+  const latitude = useLocationStore((s) => s.latitude)
+  const timeZone = useTimeZone()
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+  // Subscribe so badges appear once the forecast loads.
+  useWeatherStore((state) => state.forecast)
 
   const comets = useMemo(() => getComets(latitude), [latitude])
 
@@ -62,7 +66,7 @@ export function NightCometsTab() {
                       Visible now
                     </span>
                   ) : (
-                    formatDate(comet.peakDateParsed)
+                    formatDate(comet.peakDateParsed, timeZone)
                   )}
                 </h3>
                 <p className="mt-0.5 text-sm text-muted-foreground">

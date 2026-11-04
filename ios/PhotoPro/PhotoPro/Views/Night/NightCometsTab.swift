@@ -57,7 +57,7 @@ struct NightCometsTab: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.cometAccent)
                         } else {
-                            Text(Formatting.formatDate(comet.peakDate))
+                            Text(Formatting.formatDate(comet.peakDate, timeZone: locationStore.timeZone))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.foreground)
                         }

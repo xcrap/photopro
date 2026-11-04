@@ -1,18 +1,18 @@
 import Foundation
-import SwiftUI
 import Observation
 
+@MainActor
 @Observable
 final class SettingsStore {
+    static let eclipseYearsRangeBounds = 1...5
+
     var timeFormat: TimeFormat {
         didSet { saveToStorage() }
     }
-    var eclipseYearsRange: Int {
-        didSet {
-            eclipseYearsRange = min(5, max(1, eclipseYearsRange))
-            saveToStorage()
-        }
-    }
+
+    /// Always within 1–5. Clamped in `setEclipseYearsRange` — assigning a property from its own
+    /// `didSet` under `@Observable` re-enters the observer forever (stack overflow).
+    private(set) var eclipseYearsRange: Int
 
     private let storageKey = "photopro-settings"
 
@@ -21,11 +21,22 @@ final class SettingsStore {
         if let data = UserDefaults.standard.data(forKey: storageKey),
            let state = try? JSONDecoder().decode(StoredState.self, from: data) {
             self.timeFormat = state.timeFormat
-            self.eclipseYearsRange = state.eclipseYearsRange
+            self.eclipseYearsRange = Self.clampedYearsRange(state.eclipseYearsRange)
         } else {
             self.timeFormat = .twentyFourHour
             self.eclipseYearsRange = 2
         }
+    }
+
+    func setEclipseYearsRange(_ value: Int) {
+        let clamped = Self.clampedYearsRange(value)
+        guard clamped != eclipseYearsRange else { return }
+        eclipseYearsRange = clamped
+        saveToStorage()
+    }
+
+    private static func clampedYearsRange(_ value: Int) -> Int {
+        min(eclipseYearsRangeBounds.upperBound, max(eclipseYearsRangeBounds.lowerBound, value))
     }
 
     private struct StoredState: Codable {

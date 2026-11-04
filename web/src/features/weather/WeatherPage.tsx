@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useWeatherStore } from '@/stores/weather-store'
+import { useTimeZone } from '@/hooks/useTimeZone'
+import { localDayDifference } from '@/lib/time/zone'
 
 function getRatingClass(label: string): string {
   if (label === 'Excellent') return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200'
@@ -67,7 +69,9 @@ function IconMetricsBlock({
 }
 
 export function WeatherPage() {
-  const { latitude, longitude } = useLocationStore()
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
+  const timeZone = useTimeZone()
   const { timeFormat } = useSettingsStore()
   const dailyScores = useWeatherStore((state) => state.dailyScores)
   const isLoading = useWeatherStore((state) => state.isLoading)
@@ -119,10 +123,11 @@ export function WeatherPage() {
               variant="ghost"
               size="sm"
               className="gap-1.5 rounded-full border border-white/[0.08] px-3 text-xs"
+              disabled={isLoading}
               onClick={() => void fetchForecast(latitude, longitude, true)}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
+              <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
+              {isLoading ? 'Refreshing…' : 'Refresh'}
             </Button>
           }
         />
@@ -144,12 +149,13 @@ export function WeatherPage() {
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start md:gap-5">
               <div className="min-w-0 space-y-3">
                 <p className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {formatDate(day.date)}
+                  {localDayDifference(day.date, new Date(), timeZone) === 0 ? 'Today · ' : ''}
+                  {formatDate(day.date, timeZone)}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-foreground/80">
-                    Best {formatTime(day.observationTime, timeFormat)}
+                    Best {formatTime(day.observationTime, timeFormat, timeZone)}
                   </span>
                   <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-foreground/70">
                     {day.profile === 'sunset' ? 'Sunset profile' : 'Night profile'}
@@ -209,7 +215,7 @@ export function WeatherPage() {
 
       {lastUpdated && (
         <p className="text-xs text-muted-foreground/70">
-          Updated {format(new Date(lastUpdated), 'MMM d, HH:mm')}
+          Updated {format(new Date(lastUpdated), timeFormat === '12h' ? 'MMM d, h:mm a' : 'MMM d, HH:mm')}
         </p>
       )}
     </div>

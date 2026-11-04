@@ -72,7 +72,7 @@ final class SunCalcTests: XCTestCase {
 	func test_getMoonPosition() {
         let moonPos: MoonPosition = SunCalc.getMoonPosition(timeAndDate: date, latitude: LAT, longitude: LNG)
         XCTAssertEqual(moonPos.azimuth, -0.9783999522438226, accuracy: NEARNESS)
-        XCTAssertEqual(moonPos.altitude, 0.006969727754891917, accuracy: NEARNESS)
+        XCTAssertEqual(moonPos.altitude, 0.014551482243892251, accuracy: NEARNESS) // JS suncalc 1.9 value (astroRefraction)
         XCTAssertEqual(moonPos.distance, 364121.37256256294, accuracy: NEARNESS)
 	}
 

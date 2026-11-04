@@ -1,5 +1,3 @@
-import { addDays, format } from 'date-fns'
-
 export interface HourlyForecast {
   time: Date
   wind_speed_10m: number
@@ -19,7 +17,8 @@ export interface WeatherForecast {
 }
 
 interface OpenMeteoHourlyResponse {
-  time: string[]
+  /** Unix seconds (requested with timeformat=unixtime). */
+  time: number[]
   wind_speed_10m: number[]
   cloud_cover: number[]
   cloud_cover_low: number[]
@@ -48,10 +47,6 @@ const RETRY_ATTEMPTS = 2
 const RETRY_BASE_DELAY_MS = 500
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504])
 
-function toDate(value: string): Date {
-  return new Date(value)
-}
-
 function isRetryableStatus(status: number): boolean {
   return RETRYABLE_STATUS_CODES.has(status)
 }
@@ -74,7 +69,7 @@ async function fetchWithRetry(url: string): Promise<Response> {
     } catch (error) {
       if (attempt === RETRY_ATTEMPTS) {
         if (error instanceof Error) throw error
-        throw new Error('Weather request failed')
+        throw new Error('Weather request failed', { cause: error })
       }
 
       await sleep(getRetryDelayMs(attempt))
@@ -101,7 +96,7 @@ function toHourlyForecast(hourly: OpenMeteoHourlyResponse): HourlyForecast[] {
 
   for (let i = 0; i < length; i++) {
     points.push({
-      time: toDate(hourly.time[i]),
+      time: new Date(hourly.time[i] * 1000),
       wind_speed_10m: hourly.wind_speed_10m[i] ?? 0,
       cloud_cover: hourly.cloud_cover[i] ?? 0,
       cloud_cover_low: hourly.cloud_cover_low[i] ?? 0,
@@ -119,16 +114,15 @@ export async function fetchWeatherForecast(
   longitude: number,
   days = 7,
 ): Promise<WeatherForecast> {
-  const startDate = new Date()
-  const endDate = addDays(startDate, Math.max(1, days) - 1)
-
+  // timeformat=unixtime → absolute instants; timezone=auto → `timezone` is the location's
+  // IANA zone and forecast_days counts from the location's local today.
   const params = new URLSearchParams({
     latitude: latitude.toString(),
     longitude: longitude.toString(),
     hourly: HOURLY_PARAMS,
     timezone: 'auto',
-    start_date: format(startDate, 'yyyy-MM-dd'),
-    end_date: format(endDate, 'yyyy-MM-dd'),
+    timeformat: 'unixtime',
+    forecast_days: String(Math.min(16, Math.max(1, days))),
   })
 
   const response = await fetchWithRetry(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)

@@ -18,37 +18,31 @@ import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useWeatherStore } from '@/stores/weather-store'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
-import { getSunTimes } from '@/lib/astronomy/sun-calculator'
+import { getPolarLabel, getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { getUpcomingEclipses, getVisibilityForLocation } from '@/lib/astronomy/eclipse-calculator'
 import {
   formatTime,
+  formatTimeRange,
   formatDate,
 } from '@/lib/formatting'
 import solarEclipsesData from '@/data/solar-eclipses.json'
 import type { EclipseEvent } from '@/types'
 
-function getEclipseWeatherTime(eclipse: EclipseEvent): Date {
-  const eventTime = new Date(eclipse.date)
-  const match = /^(\d{1,2}):(\d{2})/.exec(eclipse.peakTime)
-  if (!match) {
-    eventTime.setHours(12, 0, 0, 0)
-    return eventTime
-  }
-
-  const [, hours, minutes] = match
-  eventTime.setHours(Number(hours), Number(minutes), 0, 0)
-  return eventTime
-}
-
 export function SunPage() {
-  const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
-  const { latitude, longitude } = useLocationStore()
+  const { selectedDate, timeZone, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
   const { timeFormat, eclipseYearsRange } = useSettingsStore()
   const [visibleOnly, setVisibleOnly] = useState(true)
   const fetchForecast = useWeatherStore((state) => state.fetchForecast)
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+  const forecast = useWeatherStore((state) => state.forecast)
 
-  const sunTimes = useMemo(() => getSunTimes(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
+  const sunTimes = useMemo(
+    () => getSunTimes(selectedDate, latitude, longitude, timeZone),
+    [selectedDate, latitude, longitude, timeZone],
+  )
+  const polarLabel = getPolarLabel(sunTimes.polar)
 
   const eclipses = useMemo(() => {
     const data = solarEclipsesData.map((e) => ({
@@ -77,9 +71,10 @@ export function SunPage() {
     () =>
       filteredEclipses.map((item) => ({
         ...item,
-        weatherScore: getScoreForTime(getEclipseWeatherTime(item.eclipse), 'night'),
+        // Solar eclipses happen in daylight: score clear sky/wind at the peak instant.
+        weatherScore: forecast ? getScoreForTime(item.eclipse.date, 'night', 0) : null,
       })),
-    [filteredEclipses, getScoreForTime],
+    [filteredEclipses, getScoreForTime, forecast],
   )
 
   useEffect(() => {
@@ -101,6 +96,7 @@ export function SunPage() {
           action={
             <DateNavigator
               date={selectedDate}
+              timeZone={timeZone}
               isToday={isToday}
               onPrevious={goToPreviousDay}
               onNext={goToNextDay}
@@ -133,19 +129,22 @@ export function SunPage() {
             <div className="surface space-y-0">
                 <InfoRow
                   label="Sunrise"
-                  value={formatTime(sunTimes.sunrise, timeFormat)}
+                  value={formatTime(sunTimes.sunrise, timeFormat, timeZone)}
                   icon={<Sunrise className="h-3.5 w-3.5 text-amber-400" />}
                 />
                 <InfoRow
                   label="Solar Noon"
-                  value={formatTime(sunTimes.solarNoon, timeFormat)}
+                  value={formatTime(sunTimes.solarNoon, timeFormat, timeZone)}
                   icon={<Sun className="h-3.5 w-3.5 text-yellow-300" />}
                 />
                 <InfoRow
                   label="Sunset"
-                  value={formatTime(sunTimes.sunset, timeFormat)}
+                  value={formatTime(sunTimes.sunset, timeFormat, timeZone)}
                   icon={<Sunset className="h-3.5 w-3.5 text-orange-400" />}
                 />
+                {polarLabel && (
+                  <p className="pt-1 text-xs text-muted-foreground">{polarLabel}</p>
+                )}
             </div>
           </div>
 
@@ -161,25 +160,25 @@ export function SunPage() {
                 <InfoRow
                   label="Blue Hour (AM)"
                   sublabel="Cool tones, soft light"
-                  value={`${formatTime(sunTimes.blueHourMorningStart, timeFormat)} – ${formatTime(sunTimes.blueHourMorningEnd, timeFormat)}`}
+                  value={formatTimeRange(sunTimes.blueHourMorningStart, sunTimes.blueHourMorningEnd, timeFormat, timeZone)}
                   icon={<span className="text-[10px] text-blue-400">●</span>}
                 />
                 <InfoRow
                   label="Golden Hour (AM)"
                   sublabel="Warm, directional light"
-                  value={`${formatTime(sunTimes.goldenHourMorningStart, timeFormat)} – ${formatTime(sunTimes.goldenHourMorningEnd, timeFormat)}`}
+                  value={formatTimeRange(sunTimes.goldenHourMorningStart, sunTimes.goldenHourMorningEnd, timeFormat, timeZone)}
                   icon={<span className="text-[10px] text-amber-400">●</span>}
                 />
                 <InfoRow
                   label="Golden Hour (PM)"
                   sublabel="Warm, directional light"
-                  value={`${formatTime(sunTimes.goldenHourStart, timeFormat)} – ${formatTime(sunTimes.goldenHourEnd, timeFormat)}`}
+                  value={formatTimeRange(sunTimes.goldenHourStart, sunTimes.goldenHourEnd, timeFormat, timeZone)}
                   icon={<span className="text-[10px] text-orange-400">●</span>}
                 />
                 <InfoRow
                   label="Blue Hour (PM)"
                   sublabel="Cool tones, soft light"
-                  value={`${formatTime(sunTimes.blueHourEveningStart, timeFormat)} – ${formatTime(sunTimes.blueHourEveningEnd, timeFormat)}`}
+                  value={formatTimeRange(sunTimes.blueHourEveningStart, sunTimes.blueHourEveningEnd, timeFormat, timeZone)}
                   icon={<span className="text-[10px] text-blue-400">●</span>}
                 />
             </div>
@@ -194,12 +193,12 @@ export function SunPage() {
               <span className="text-sm font-semibold tracking-tight">Twilight</span>
             </div>
             <div className="surface space-y-0">
-                <InfoRow label="Dawn" value={formatTime(sunTimes.dawn, timeFormat)} />
-                <InfoRow label="Dusk" value={formatTime(sunTimes.dusk, timeFormat)} />
-                <InfoRow label="Nautical Dawn" value={formatTime(sunTimes.nauticalDawn, timeFormat)} />
-                <InfoRow label="Nautical Dusk" value={formatTime(sunTimes.nauticalDusk, timeFormat)} />
-                <InfoRow label="Night Start" value={formatTime(sunTimes.nightStart, timeFormat)} />
-                <InfoRow label="Night End" value={formatTime(sunTimes.nightEnd, timeFormat)} />
+                <InfoRow label="Dawn" value={formatTime(sunTimes.dawn, timeFormat, timeZone)} />
+                <InfoRow label="Dusk" value={formatTime(sunTimes.dusk, timeFormat, timeZone)} />
+                <InfoRow label="Nautical Dawn" value={formatTime(sunTimes.nauticalDawn, timeFormat, timeZone)} />
+                <InfoRow label="Nautical Dusk" value={formatTime(sunTimes.nauticalDusk, timeFormat, timeZone)} />
+                <InfoRow label="Night Start" value={formatTime(sunTimes.nightStart, timeFormat, timeZone)} />
+                <InfoRow label="Night End" value={formatTime(sunTimes.nightEnd, timeFormat, timeZone)} />
             </div>
           </div>
         </TabsContent>
@@ -228,15 +227,15 @@ export function SunPage() {
                   : `No solar eclipses in the next ${eclipseYearsRange} year${eclipseYearsRange > 1 ? 's' : ''}`}
               </p>
             ) : (
-              filteredEclipsesWithWeather.map(({ eclipse, visibility, weatherScore }, i) => (
+              filteredEclipsesWithWeather.map(({ eclipse, visibility, weatherScore }) => (
                 <div
-                  key={i}
+                  key={eclipse.date.toISOString()}
                   className="surface-eclipse"
                 >
                     {/* Header */}
                     <div className="flex items-baseline justify-between gap-3">
                       <h3 className="text-base font-semibold tracking-tight text-foreground">
-                        {formatDate(eclipse.date)}
+                        {formatDate(eclipse.date, timeZone)}
                       </h3>
                       <div className="flex items-center gap-2">
                         <WeatherBadge score={weatherScore} />
@@ -247,7 +246,7 @@ export function SunPage() {
                     </div>
 
                     <p className="mt-1 text-sm text-foreground/60">
-                      <span className="capitalize">{eclipse.type}</span> Solar Eclipse · Peak {eclipse.peakTime}
+                      <span className="capitalize">{eclipse.type}</span> Solar Eclipse · Peak {formatTime(eclipse.date, timeFormat, timeZone)}
                     </p>
 
                     <p className="mt-2 text-sm leading-relaxed text-foreground/50">{eclipse.description}</p>

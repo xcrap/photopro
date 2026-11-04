@@ -26,18 +26,29 @@ const tabs = [
 ] as const
 
 export function MoonPage() {
-  const { selectedDate, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
-  const { latitude, longitude } = useLocationStore()
+  const { selectedDate, selectedDayStart, timeZone, isToday, goToPreviousDay, goToNextDay, goToToday, goToDate } = useSelectedDate()
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
   const { eclipseYearsRange } = useSettingsStore()
   const [activeTab, setActiveTab] = useState('current')
 
-  const moonData = useMemo(() => getMoonData(selectedDate, latitude, longitude), [selectedDate, latitude, longitude])
-  const fullMoons = useMemo(() => findFullMoons(selectedDate, 12), [selectedDate])
-  const proximityEvents = useMemo(
-    () => findProximityEvents(selectedDate, 365, latitude, longitude),
-    [selectedDate, latitude, longitude],
+  const moonData = useMemo(
+    () => getMoonData(selectedDate, latitude, longitude, timeZone),
+    [selectedDate, latitude, longitude, timeZone],
   )
-  const specialEvents = useMemo(() => findSpecialEvents(selectedDate, 24), [selectedDate])
+  // Heavy scans: keyed on the local day, not the per-minute clock, and only for the open tab.
+  const fullMoons = useMemo(
+    () => (activeTab === 'full-moons' ? findFullMoons(selectedDayStart, 12, timeZone) : []),
+    [activeTab, selectedDayStart, timeZone],
+  )
+  const proximityEvents = useMemo(
+    () => (activeTab === 'proximity' ? findProximityEvents(selectedDayStart, 365, latitude, longitude, timeZone) : []),
+    [activeTab, selectedDayStart, latitude, longitude, timeZone],
+  )
+  const specialEvents = useMemo(
+    () => (activeTab === 'special' ? findSpecialEvents(selectedDayStart, 24, timeZone) : []),
+    [activeTab, selectedDayStart, timeZone],
+  )
 
   return (
     <div className="space-y-5">
@@ -49,6 +60,7 @@ export function MoonPage() {
           action={
             <DateNavigator
               date={selectedDate}
+              timeZone={timeZone}
               isToday={isToday}
               onPrevious={goToPreviousDay}
               onNext={goToNextDay}
@@ -92,11 +104,13 @@ export function MoonPage() {
         </Tabs>
 
         {/* Shared content */}
-        {activeTab === 'current' && <MoonCurrentTab moonData={moonData} now={selectedDate} />}
-        {activeTab === 'full-moons' && <MoonFullMoonsTab fullMoons={fullMoons} now={selectedDate} />}
-        {activeTab === 'proximity' && <MoonProximityTab events={proximityEvents} />}
-        {activeTab === 'eclipses' && <MoonEclipsesTab yearsRange={eclipseYearsRange} />}
-        {activeTab === 'special' && <MoonSpecialTab events={specialEvents} />}
+        {activeTab === 'current' && (
+          <MoonCurrentTab moonData={moonData} now={selectedDate} dayStart={selectedDayStart} timeZone={timeZone} />
+        )}
+        {activeTab === 'full-moons' && <MoonFullMoonsTab fullMoons={fullMoons} now={selectedDate} timeZone={timeZone} />}
+        {activeTab === 'proximity' && <MoonProximityTab events={proximityEvents} timeZone={timeZone} />}
+        {activeTab === 'eclipses' && <MoonEclipsesTab yearsRange={eclipseYearsRange} timeZone={timeZone} />}
+        {activeTab === 'special' && <MoonSpecialTab events={specialEvents} timeZone={timeZone} />}
       </div>
     </div>
   )

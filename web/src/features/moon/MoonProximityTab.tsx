@@ -12,10 +12,12 @@ import {
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useWeatherStore } from '@/stores/weather-store'
+import { isOppositionPair } from '@/lib/astronomy/proximity-finder'
 import type { ProximityEvent } from '@/types'
 
 interface MoonProximityTabProps {
   events: ProximityEvent[]
+  timeZone: string
 }
 
 const typeLabels: Record<ProximityEvent['type'], string> = {
@@ -49,12 +51,14 @@ function getQualityLabel(event: ProximityEvent): { text: string; className: stri
   return { text: 'Fair', className: 'text-muted-foreground' }
 }
 
-export function MoonProximityTab({ events }: MoonProximityTabProps) {
-  const { latitude, longitude } = useLocationStore()
+export function MoonProximityTab({ events, timeZone }: MoonProximityTabProps) {
+  const latitude = useLocationStore((s) => s.latitude)
+  const longitude = useLocationStore((s) => s.longitude)
   const { timeFormat } = useSettingsStore()
   const [showGoodWeatherOnly, setShowGoodWeatherOnly] = useState(false)
   const fetchForecast = useWeatherStore((state) => state.fetchForecast)
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+  const forecast = useWeatherStore((state) => state.forecast)
 
   useEffect(() => {
     void fetchForecast(latitude, longitude)
@@ -63,7 +67,7 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
   const rankedEvents = useMemo(() => {
     const scored = events.map((event) => {
       const profile = getWeatherProfileForProximityEvent(event)
-      const weatherScore = getScoreForTime(event.sunTime, profile, event.moonIllumination)
+      const weatherScore = forecast ? getScoreForTime(event.sunTime, profile, event.moonIllumination) : null
       const astronomyScore = getAstronomyOpportunityScore(event)
       const combinedScore = weatherScore
         ? getCombinedOpportunityScore(astronomyScore, weatherScore.score)
@@ -81,11 +85,11 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
       : scored
 
     return filtered.sort((a, b) => {
-      const dateDiff = a.event.date.getTime() - b.event.date.getTime()
+      const dateDiff = a.event.sunTime.getTime() - b.event.sunTime.getTime()
       if (dateDiff !== 0) return dateDiff
       return b.combinedScore - a.combinedScore
     })
-  }, [events, getScoreForTime, showGoodWeatherOnly])
+  }, [events, getScoreForTime, forecast, showGoodWeatherOnly])
 
   return (
     <div className="space-y-3">
@@ -107,19 +111,19 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
           {showGoodWeatherOnly ? 'No good-weather opportunities in range' : 'No opportunities found in the next year'}
         </p>
       ) : (
-        rankedEvents.map(({ event, weatherScore, combinedScore }, i) => {
+        rankedEvents.map(({ event, weatherScore, combinedScore }) => {
           const quality = getQualityLabel(event)
           const labels = typeTimeLabels[event.type]
 
           return (
             <div
-              key={i}
+              key={`${event.type}-${event.sunTime.toISOString()}`}
               className="surface-proximity p-5"
             >
                 {/* Header: Date + Type */}
                 <div className="flex items-baseline justify-between gap-2">
                   <h3 className="text-base font-semibold tracking-tight text-foreground">
-                    {formatDate(event.date)}
+                    {formatDate(event.sunTime, timeZone)}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="rounded-full border border-proximity/20 bg-proximity/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-proximity">
@@ -135,17 +139,19 @@ export function MoonProximityTab({ events }: MoonProximityTabProps) {
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
                     <p className="text-xs text-muted-foreground/70">{labels.moon}</p>
-                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.moonTime, timeFormat)}</p>
+                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.moonTime, timeFormat, timeZone)}</p>
                   </div>
                   <div className="rounded-lg bg-white/[0.04] px-3 py-2.5">
                     <p className="text-xs text-muted-foreground/70">{labels.sun}</p>
-                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.sunTime, timeFormat)}</p>
+                    <p className="text-lg font-semibold tabular-nums text-foreground">{formatTime(event.sunTime, timeFormat, timeZone)}</p>
                   </div>
                 </div>
 
                 {/* Stats row */}
                 <div className="mt-3 flex items-center gap-3 text-sm tabular-nums text-foreground/70">
-                  <span>{event.azimuthDiff.toFixed(1)}° apart</span>
+                  <span>
+                    {event.azimuthDiff.toFixed(1)}° {isOppositionPair(event.type) ? 'from opposite' : 'apart'}
+                  </span>
                   <span className="text-white/10">|</span>
                   <span>{Math.round(event.timeDiffMinutes)} min gap</span>
                   <span className="text-white/10">|</span>

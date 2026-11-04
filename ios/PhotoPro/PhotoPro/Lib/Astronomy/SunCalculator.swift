@@ -2,38 +2,52 @@ import Foundation
 import SunCalc
 
 enum SunCalculator {
-    /// Get comprehensive sun times for a given date and location.
-    static func getSunTimes(date: Date, lat: Double, lon: Double) -> SunTimes {
-        let times = SunCalc.getTimes(date: AstroDateHelper.noonUTC(for: date), latitude: lat, longitude: lon)
+    /// Sun times for the local day (location time zone) containing `date`.
+    /// SunCalc is called at 12:00 local time; absent (polar) events stay `nil`.
+    static func getSunTimes(date: Date, lat: Double, lon: Double, timeZone: TimeZone) -> SunTimes {
+        let times = SunCalc.getTimes(
+            date: AstroDateHelper.localNoon(for: date, in: timeZone),
+            latitude: lat,
+            longitude: lon
+        )
 
-        // SunCalc returns optional Date? for all times — provide fallbacks
-        let fallback = date
+        var polarState = PolarState.none
+        if times.sunrise == nil || times.sunset == nil, let noon = times.solarNoon {
+            let noonAltitude = getSunPosition(date: noon, lat: lat, lon: lon).altitude
+            if times.sunset == nil && noonAltitude > 0 {
+                polarState = .alwaysUp
+            } else if times.sunrise == nil && noonAltitude < 0 {
+                polarState = .alwaysDown
+            }
+        }
+
         return SunTimes(
-            sunrise: times.sunrise ?? fallback,
-            sunset: times.sunset ?? fallback,
-            solarNoon: times.solarNoon ?? fallback,
-            // Golden hour evening
-            goldenHourStart: times.goldenHour ?? fallback,
-            goldenHourEnd: times.sunset ?? fallback,
-            // Golden hour morning
-            goldenHourMorningStart: times.sunrise ?? fallback,
-            goldenHourMorningEnd: times.goldenHourEnd ?? fallback,
-            // Blue hour morning: nautical dawn to civil dawn
-            blueHourMorningStart: times.nauticalDawn ?? fallback,
-            blueHourMorningEnd: times.dawn ?? fallback,
-            // Blue hour evening: civil dusk to nautical dusk
-            blueHourEveningStart: times.dusk ?? fallback,
-            blueHourEveningEnd: times.nauticalDusk ?? fallback,
-            dawn: times.dawn ?? fallback,
-            dusk: times.dusk ?? fallback,
-            nauticalDawn: times.nauticalDawn ?? fallback,
-            nauticalDusk: times.nauticalDusk ?? fallback,
-            nightStart: times.night ?? fallback,
-            nightEnd: times.nightEnd ?? fallback
+            sunrise: times.sunrise,
+            sunset: times.sunset,
+            solarNoon: times.solarNoon,
+            // Golden hour evening: sun at 6° → sunset
+            goldenHourStart: times.goldenHour,
+            goldenHourEnd: times.sunset,
+            // Golden hour morning: sunrise → sun at 6°
+            goldenHourMorningStart: times.sunrise,
+            goldenHourMorningEnd: times.goldenHourEnd,
+            // Blue hour morning: nautical dawn → civil dawn
+            blueHourMorningStart: times.nauticalDawn,
+            blueHourMorningEnd: times.dawn,
+            // Blue hour evening: civil dusk → nautical dusk
+            blueHourEveningStart: times.dusk,
+            blueHourEveningEnd: times.nauticalDusk,
+            dawn: times.dawn,
+            dusk: times.dusk,
+            nauticalDawn: times.nauticalDawn,
+            nauticalDusk: times.nauticalDusk,
+            nightStart: times.night,
+            nightEnd: times.nightEnd,
+            polarState: polarState
         )
     }
 
-    /// Get the sun's current position in degrees.
+    /// Get the sun's position in degrees (azimuth from north, clockwise).
     static func getSunPosition(date: Date, lat: Double, lon: Double) -> SunPosition {
         let pos = SunCalc.getSunPosition(timeAndDate: date, latitude: lat, longitude: lon)
 

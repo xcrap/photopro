@@ -1,22 +1,24 @@
 import { useEffect, useMemo } from 'react'
-import { differenceInDays } from 'date-fns'
 import { Moon } from 'lucide-react'
 import { WeatherBadge } from '@/features/weather/WeatherBadge'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/formatting'
 import { useLocationStore } from '@/stores/location-store'
 import { useWeatherStore } from '@/stores/weather-store'
+import { formatRelativeDays, localTimeOnDay } from '@/lib/time/zone'
 import type { FullMoonEvent } from '@/types'
 
 interface MoonFullMoonsTabProps {
   fullMoons: FullMoonEvent[]
   now: Date
+  timeZone: string
 }
 
-export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
+export function MoonFullMoonsTab({ fullMoons, now, timeZone }: MoonFullMoonsTabProps) {
   const { latitude, longitude } = useLocationStore()
   const fetchForecast = useWeatherStore((state) => state.fetchForecast)
   const getScoreForTime = useWeatherStore((state) => state.getScoreForTime)
+  const forecast = useWeatherStore((state) => state.forecast)
 
   useEffect(() => {
     void fetchForecast(latitude, longitude)
@@ -24,20 +26,13 @@ export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
 
   const weatherScoresByDate = useMemo(() => {
     const scores = new Map<string, ReturnType<typeof getScoreForTime>>()
+    if (!forecast) return scores
     for (const fullMoon of fullMoons) {
-      const eventTime = new Date(fullMoon.date)
-      eventTime.setHours(22, 0, 0, 0)
+      const eventTime = localTimeOnDay(fullMoon.date, timeZone, 22)
       scores.set(fullMoon.date.toISOString(), getScoreForTime(eventTime, 'night'))
     }
     return scores
-  }, [fullMoons, getScoreForTime])
-
-  function daysUntil(date: Date) {
-    const days = differenceInDays(date, now)
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Tomorrow'
-    return `in ${days}d`
-  }
+  }, [fullMoons, getScoreForTime, forecast, timeZone])
 
   return (
     <div className="space-y-3">
@@ -54,8 +49,8 @@ export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
         </p>
       ) : (
         <div className="surface divide-y divide-white/[0.04]">
-      {fullMoons.map((fm, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+      {fullMoons.map((fm) => (
+        <div key={fm.date.toISOString()} className="flex items-center gap-3 px-4 py-3.5">
           <span className="text-base">🌕</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -66,11 +61,11 @@ export function MoonFullMoonsTab({ fullMoons, now }: MoonFullMoonsTabProps) {
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">{formatDate(fm.date)}</p>
+            <p className="text-sm text-muted-foreground">{formatDate(fm.date, timeZone)}</p>
           </div>
           <WeatherBadge score={weatherScoresByDate.get(fm.date.toISOString()) ?? null} />
           <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-xs tabular-nums text-muted-foreground">
-            {daysUntil(fm.date)}
+            {formatRelativeDays(fm.date, now, timeZone)}
           </span>
         </div>
       ))}

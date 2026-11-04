@@ -3,7 +3,7 @@ import Foundation
 enum CometCalculator {
     // MARK: - JSON Data Loading
 
-    private struct CometJSON: Codable {
+    private struct CometJSON: Decodable, Sendable {
         var id: String
         var name: String
         var peakStart: String
@@ -11,51 +11,37 @@ enum CometCalculator {
         var peakDate: String
         var magnitude: Double
         var visibility: CometVisibility
-        var bestViewingTime: String
-        var direction: String
+        var bestViewingTime: String?
+        var direction: String?
         var description: String
 
-        struct CometVisibility: Codable {
+        struct CometVisibility: Decodable, Sendable {
             var hemisphere: String?
             var minLatitude: Double?
             var declinationRange: DeclinationRange?
 
-            struct DeclinationRange: Codable {
+            struct DeclinationRange: Decodable, Sendable {
                 var min: Double
                 var max: Double
             }
         }
     }
 
-    private static var cometsCache: [CometJSON]?
-
-    private static func loadComets() -> [CometJSON] {
-        if let cache = cometsCache { return cache }
+    /// Loaded once, lazily and thread-safely (static `let`). Bad entries are skipped.
+    private static let comets: [CometJSON] = {
         guard let url = Bundle.main.url(forResource: "comets", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([CometJSON].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([LossyDecodable<CometJSON>].self, from: data) else {
             return []
         }
-        cometsCache = decoded
-        return decoded
-    }
+        return decoded.compactMap(\.value)
+    }()
 
     // MARK: - Public API
 
-    /// Get active and upcoming comets for a given location.
-    static func getComets(userLatitude: Double) -> [CometEvent] {
-        let comets = loadComets()
-        let now = Date()
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let fallbackFormatter = ISO8601DateFormatter()
-
-        func parseDate(_ string: String) -> Date {
-            isoFormatter.date(from: string) ?? fallbackFormatter.date(from: string) ?? Date()
-        }
-
-        return comets
+    /// Active and upcoming comets for a given location.
+    static func getComets(userLatitude: Double, now: Date = Date()) -> [CometEvent] {
+        comets
             .filter { comet in
                 Visibility.isCometVisible(
                     hemisphere: comet.visibility.hemisphere,
@@ -66,9 +52,10 @@ enum CometCalculator {
                 )
             }
             .compactMap { comet in
-                let peakStartDate = parseDate(comet.peakStart)
-                let peakEndDate = parseDate(comet.peakEnd)
-                let peakDateParsed = parseDate(comet.peakDate)
+                // An unparseable date drops the comet instead of pretending it is "now".
+                guard let peakStartDate = ISODate.parse(comet.peakStart),
+                      let peakEndDate = ISODate.parse(comet.peakEnd),
+                      let peakDateParsed = ISODate.parse(comet.peakDate) else { return nil }
 
                 let isActive = now >= peakStartDate && now <= peakEndDate
                 let isUpcoming = now < peakStartDate

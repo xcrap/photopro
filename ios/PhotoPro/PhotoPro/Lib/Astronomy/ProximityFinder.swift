@@ -2,91 +2,78 @@ import Foundation
 import SunCalc
 
 private let maxTimeDiffMinutes: Double = 30
-private let maxAzimuthDiffDegrees: Double = 30
-
-private let directions16 = [
-    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
-]
+private let maxAzimuthDeviationDegrees: Double = 30
+private let minMoonIlluminationPercent: Double = 5
 
 enum ProximityFinder {
-    private static func compassDirection(_ azimuth: Double) -> String {
-        let index = Int((azimuth / 22.5).rounded()) % 16
-        return directions16[index]
-    }
-
-    private static func azimuthDifference(_ az1: Double, _ az2: Double) -> Double {
-        var diff = abs(az1 - az2)
+    /// Circular azimuth difference: `min(|a − b|, 360 − |a − b|)`.
+    static func circularDifference(_ a: Double, _ b: Double) -> Double {
+        var diff = abs(a - b).truncatingRemainder(dividingBy: 360)
         if diff > 180 { diff = 360 - diff }
         return diff
     }
 
-    /// Find proximity events where the moon and sun rise or set near each other.
-    static func findProximityEvents(startDate: Date, days: Int, lat: Double, lon: Double) -> [ProximityEvent] {
+    private static func azimuthFromNorth(_ radiansFromSouth: Double) -> Double {
+        ((radiansFromSouth * 180 / .pi) + 180).truncatingRemainder(dividingBy: 360)
+    }
+
+    /// Moon/Sun rise-set pairs within 30 min whose moon is beside the Sun (same-event pairs) or
+    /// opposite it (cross pairs) within 30°, with the moon at least 5% illuminated
+    /// (ALGORITHM.md → "Proximity Finder"). Days are location-local days.
+    static func findProximityEvents(startDate: Date, days: Int, lat: Double, lon: Double, timeZone: TimeZone) -> [ProximityEvent] {
         var events: [ProximityEvent] = []
+        let firstDay = AstroDateHelper.localMidnight(for: startDate, in: timeZone)
 
-        let noonAnchor = AstroDateHelper.noonUTC(for: startDate)
-        let midnightAnchor = AstroDateHelper.localMidnight(for: startDate)
+        for i in 0..<max(0, days) {
+            let dayStart = AstroDateHelper.addDays(i, to: firstDay, in: timeZone)
+            let sunTimes = SunCalc.getTimes(
+                date: AstroDateHelper.localNoon(for: dayStart, in: timeZone),
+                latitude: lat,
+                longitude: lon
+            )
+            let moonTimes = SunCalc.getMoonTimes(date: dayStart, latitude: lat, longitude: lon)
 
-        for i in 0..<days {
-            guard let sunDate = AstroDateHelper.addDaysNoonUTC(i, to: noonAnchor),
-                  let moonDate = AstroDateHelper.addDaysLocalMidnight(i, to: midnightAnchor) else { continue }
-
-            let sunTimes = SunCalc.getTimes(date: sunDate, latitude: lat, longitude: lon)
-            let moonTimes = SunCalc.getMoonTimes(date: moonDate, latitude: lat, longitude: lon)
-
-            let moonrise = moonTimes.rise
-            let moonset = moonTimes.set
-            guard let sunrise = sunTimes.sunrise, let sunset = sunTimes.sunset else { continue }
-
-            struct TimePair {
-                var moonTime: Date
-                var sunTime: Date
-                var type: ProximityType
+            var pairs: [(moonTime: Date, sunTime: Date, type: ProximityType)] = []
+            if let mr = moonTimes.rise {
+                if let sr = sunTimes.sunrise { pairs.append((mr, sr, .moonriseSunrise)) }
+                if let ss = sunTimes.sunset { pairs.append((mr, ss, .moonriseSunset)) }
             }
-
-            var pairs: [TimePair] = []
-
-            if let mr = moonrise {
-                pairs.append(TimePair(moonTime: mr, sunTime: sunrise, type: .moonriseSunrise))
-                pairs.append(TimePair(moonTime: mr, sunTime: sunset, type: .moonriseSunset))
-            }
-            if let ms = moonset {
-                pairs.append(TimePair(moonTime: ms, sunTime: sunrise, type: .moonsetSunrise))
-                pairs.append(TimePair(moonTime: ms, sunTime: sunset, type: .moonsetSunset))
+            if let ms = moonTimes.set {
+                if let sr = sunTimes.sunrise { pairs.append((ms, sr, .moonsetSunrise)) }
+                if let ss = sunTimes.sunset { pairs.append((ms, ss, .moonsetSunset)) }
             }
 
             for pair in pairs {
-                let timeDiffMs = abs(pair.moonTime.timeIntervalSince(pair.sunTime))
-                let timeDiffMinutes = timeDiffMs / 60
-
+                let timeDiffMinutes = abs(pair.moonTime.timeIntervalSince(pair.sunTime)) / 60
                 guard timeDiffMinutes <= maxTimeDiffMinutes else { continue }
 
-                let midpointMs = (pair.moonTime.timeIntervalSince1970 + pair.sunTime.timeIntervalSince1970) / 2
-                let midpointDate = Date(timeIntervalSince1970: midpointMs)
+                let midpoint = Date(timeIntervalSince1970:
+                    (pair.moonTime.timeIntervalSince1970 + pair.sunTime.timeIntervalSince1970) / 2)
 
-                let moonPos = SunCalc.getMoonPosition(timeAndDate: midpointDate, latitude: lat, longitude: lon)
-                let sunPos = SunCalc.getSunPosition(timeAndDate: midpointDate, latitude: lat, longitude: lon)
+                let moonPos = SunCalc.getMoonPosition(timeAndDate: midpoint, latitude: lat, longitude: lon)
+                let sunPos = SunCalc.getSunPosition(timeAndDate: midpoint, latitude: lat, longitude: lon)
+                let moonAzimuth = azimuthFromNorth(moonPos.azimuth)
+                let sunAzimuth = azimuthFromNorth(sunPos.azimuth)
 
-                let moonAzimuth = ((moonPos.azimuth * 180 / .pi) + 180).truncatingRemainder(dividingBy: 360)
-                let sunAzimuth = ((sunPos.azimuth * 180 / .pi) + 180).truncatingRemainder(dividingBy: 360)
+                let targetAzimuth = pair.type.isCrossPair ? sunAzimuth + 180 : sunAzimuth
+                let deviation = circularDifference(moonAzimuth, targetAzimuth)
+                guard deviation <= maxAzimuthDeviationDegrees else { continue }
 
-                let azDiff = azimuthDifference(moonAzimuth, sunAzimuth)
-                guard azDiff <= maxAzimuthDiffDegrees else { continue }
+                let illumination = SunCalc.getMoonIllumination(timeAndDate: midpoint).fraction * 100
+                guard illumination >= minMoonIlluminationPercent else { continue }
+                let illuminationPercent = Int(illumination.rounded())
 
-                let moonIllumination = SunCalc.getMoonIllumination(timeAndDate: midpointDate)
-                let illuminationPercent = Int((moonIllumination.fraction * 100).rounded())
-
-                let avgAzimuth = (moonAzimuth + sunAzimuth) / 2
-                let direction = compassDirection(avgAzimuth)
-
-                let description = "Moon \(Int(azDiff.rounded()))\u{00B0} from Sun at \(direction), \(illuminationPercent)% illuminated"
+                let direction = Formatting.compassDirection(moonAzimuth)
+                let deviationText = "\(Int(deviation.rounded()))\u{00B0}"
+                let description = pair.type.isCrossPair
+                    ? "Moon opposite the Sun (\(deviationText) off) at \(direction), \(illuminationPercent)% illuminated"
+                    : "Moon \(deviationText) from Sun at \(direction), \(illuminationPercent)% illuminated"
 
                 events.append(ProximityEvent(
-                    date: moonDate,
+                    date: dayStart,
                     type: pair.type,
                     timeDiffMinutes: (timeDiffMinutes * 10).rounded() / 10,
-                    azimuthDiff: (azDiff * 10).rounded() / 10,
+                    azimuthDiff: (deviation * 10).rounded() / 10,
                     moonIllumination: Double(illuminationPercent),
                     description: description,
                     moonTime: pair.moonTime,
@@ -95,7 +82,7 @@ enum ProximityFinder {
             }
         }
 
-        events.sort { $0.date < $1.date }
+        events.sort { ($0.date, $0.sunTime) < ($1.date, $1.sunTime) }
         return events
     }
 }

@@ -37,6 +37,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === '/'}
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-[13px] tracking-wide transition-all duration-200 ${

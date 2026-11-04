@@ -4,11 +4,12 @@ import MapKit
 import Observation
 
 private let defaultLatitude = 40.7128
-private let defaultLongitude = -73.906
+private let defaultLongitude = -74.006
 private let defaultName = "New York, NY"
 
 private let storageKey = "photopro-location"
 
+@MainActor
 @Observable
 final class LocationStore {
     var latitude: Double = defaultLatitude
@@ -18,13 +19,28 @@ final class LocationStore {
     var gpsStatus: GpsStatus = .idle
     var savedLocations: [SavedLocation] = []
 
-    private let locationManager = CLLocationManager()
-    private var locationDelegate: LocationDelegate?
+    /// IANA time zone of the current location (from the forecast); `nil` until known.
+    private(set) var timeZoneIdentifier: String?
+
+    @ObservationIgnored private let locationManager = CLLocationManager()
+    @ObservationIgnored private var locationDelegate: LocationDelegate?
+    @ObservationIgnored private var geocodeTask: Task<Void, Never>?
+
+    /// The location's time zone, falling back to the device's (ALGORITHM.md → "Time Zones").
+    var timeZone: TimeZone {
+        timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? .current
+    }
+
+    /// Coordinates rounded to 3 decimals (same key as the weather cache).
+    var coordinateKey: String {
+        LocationKey.make(latitude: latitude, longitude: longitude)
+    }
 
     init() {
         loadFromStorage()
-        locationDelegate = LocationDelegate(store: self)
-        locationManager.delegate = locationDelegate
+        let delegate = LocationDelegate(store: self)
+        locationDelegate = delegate
+        locationManager.delegate = delegate
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
 
         if gpsEnabled {
@@ -34,11 +50,46 @@ final class LocationStore {
 
     // MARK: - Location Management
 
-    func setLocation(lat: Double, lon: Double, name: String? = nil) {
+    /// Set the current location. A known time zone can be passed (saved locations); otherwise it is
+    /// kept for the same coordinates, looked up from saved locations, or reset to the device fallback
+    /// until the forecast reports one.
+    func setLocation(lat: Double, lon: Double, name: String? = nil, timeZoneIdentifier: String? = nil) {
+        let newKey = LocationKey.make(latitude: lat, longitude: lon)
+        let coordinatesChanged = newKey != coordinateKey
+
         latitude = lat
         longitude = lon
         self.name = name
+
+        if let timeZoneIdentifier {
+            self.timeZoneIdentifier = timeZoneIdentifier
+        } else if coordinatesChanged {
+            self.timeZoneIdentifier = savedLocations.first {
+                LocationKey.make(latitude: $0.latitude, longitude: $0.longitude) == newKey
+            }?.timeZoneIdentifier
+        }
         saveToStorage()
+    }
+
+    /// Record the time zone reported by the forecast for `latitude`/`longitude`. Ignored if that is
+    /// no longer the current location. Also stored on any saved location with the same coordinates.
+    func applyForecastTimeZone(_ identifier: String, latitude: Double, longitude: Double) {
+        guard TimeZone(identifier: identifier) != nil else { return }
+        let key = LocationKey.make(latitude: latitude, longitude: longitude)
+        guard key == coordinateKey else { return }
+
+        var changed = false
+        if timeZoneIdentifier != identifier {
+            timeZoneIdentifier = identifier
+            changed = true
+        }
+        for index in savedLocations.indices
+        where LocationKey.make(latitude: savedLocations[index].latitude, longitude: savedLocations[index].longitude) == key
+            && savedLocations[index].timeZoneIdentifier != identifier {
+            savedLocations[index].timeZoneIdentifier = identifier
+            changed = true
+        }
+        if changed { saveToStorage() }
     }
 
     func setGpsEnabled(_ enabled: Bool) {
@@ -46,13 +97,22 @@ final class LocationStore {
         saveToStorage()
         if enabled {
             requestLocation()
+        } else {
+            geocodeTask?.cancel()
+            gpsStatus = .idle
         }
+    }
+
+    func useSavedLocation(_ saved: SavedLocation) {
+        setGpsEnabled(false)
+        setLocation(lat: saved.latitude, lon: saved.longitude, name: saved.name, timeZoneIdentifier: saved.timeZoneIdentifier)
     }
 
     func resetToDefault() {
         latitude = defaultLatitude
         longitude = defaultLongitude
         name = defaultName
+        timeZoneIdentifier = nil
         gpsEnabled = true
         gpsStatus = .idle
         savedLocations = []
@@ -61,12 +121,13 @@ final class LocationStore {
 
     // MARK: - Saved Locations
 
-    func addSavedLocation(name: String, latitude: Double, longitude: Double) {
+    func addSavedLocation(name: String, latitude: Double, longitude: Double, timeZoneIdentifier: String? = nil) {
         let location = SavedLocation(
             id: UUID().uuidString,
             name: name,
             latitude: latitude,
-            longitude: longitude
+            longitude: longitude,
+            timeZoneIdentifier: timeZoneIdentifier
         )
         savedLocations.append(location)
         saveToStorage()
@@ -74,7 +135,16 @@ final class LocationStore {
 
     func updateSavedLocation(id: String, name: String, latitude: Double, longitude: Double) {
         if let index = savedLocations.firstIndex(where: { $0.id == id }) {
-            savedLocations[index] = SavedLocation(id: id, name: name, latitude: latitude, longitude: longitude)
+            let old = savedLocations[index]
+            let sameCoordinates = LocationKey.make(latitude: old.latitude, longitude: old.longitude)
+                == LocationKey.make(latitude: latitude, longitude: longitude)
+            savedLocations[index] = SavedLocation(
+                id: id,
+                name: name,
+                latitude: latitude,
+                longitude: longitude,
+                timeZoneIdentifier: sameCoordinates ? old.timeZoneIdentifier : nil
+            )
             saveToStorage()
         }
     }
@@ -87,20 +157,58 @@ final class LocationStore {
     // MARK: - GPS
 
     func requestLocation() {
+        guard gpsEnabled else { return }
         gpsStatus = .requesting
-        let status = locationManager.authorizationStatus
 
-        switch status {
+        switch locationManager.authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
-            gpsStatus = .granted
             locationManager.requestLocation()
         case .denied, .restricted:
             gpsStatus = .denied
         @unknown default:
             gpsStatus = .error
         }
+    }
+
+    // GPS callbacks (from `LocationDelegate`). They never touch the location while GPS is off.
+
+    fileprivate func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
+        guard gpsEnabled else { return }
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            gpsStatus = .requesting
+            locationManager.requestLocation()
+        case .denied, .restricted:
+            gpsStatus = .denied
+        default:
+            break
+        }
+    }
+
+    fileprivate func handleLocationUpdate(latitude lat: Double, longitude lon: Double) {
+        guard gpsEnabled else { return }
+        gpsStatus = .granted
+
+        let sameKey = LocationKey.make(latitude: lat, longitude: lon) == coordinateKey
+        setLocation(lat: lat, lon: lon, name: sameKey ? name : nil)
+
+        geocodeTask?.cancel()
+        geocodeTask = Task { [weak self] in
+            guard let request = MKReverseGeocodingRequest(location: CLLocation(latitude: lat, longitude: lon)) else { return }
+            let placeName = (try? await request.mapItems)?.first?.name
+            guard let self, !Task.isCancelled, self.gpsEnabled,
+                  self.coordinateKey == LocationKey.make(latitude: lat, longitude: lon),
+                  let placeName else { return }
+            self.name = placeName
+            self.saveToStorage()
+        }
+    }
+
+    fileprivate func handleLocationError() {
+        guard gpsEnabled else { return }
+        gpsStatus = .error
     }
 
     // MARK: - Persistence
@@ -111,6 +219,7 @@ final class LocationStore {
         var name: String?
         var gpsEnabled: Bool
         var savedLocations: [SavedLocation]
+        var timeZoneIdentifier: String?
     }
 
     private func saveToStorage() {
@@ -119,7 +228,8 @@ final class LocationStore {
             longitude: longitude,
             name: name,
             gpsEnabled: gpsEnabled,
-            savedLocations: savedLocations
+            savedLocations: savedLocations,
+            timeZoneIdentifier: timeZoneIdentifier
         )
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: storageKey)
@@ -136,11 +246,15 @@ final class LocationStore {
         name = state.name
         gpsEnabled = state.gpsEnabled
         savedLocations = state.savedLocations
+        timeZoneIdentifier = state.timeZoneIdentifier
     }
 }
 
 // MARK: - CLLocationManager Delegate
 
+/// Core Location calls back on the thread that created the manager (main). The callbacks extract
+/// Sendable values and hop to the main actor; the store decides whether to use them.
+@MainActor
 private final class LocationDelegate: NSObject, CLLocationManagerDelegate {
     weak var store: LocationStore?
 
@@ -148,40 +262,25 @@ private final class LocationDelegate: NSObject, CLLocationManagerDelegate {
         self.store = store
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        store?.gpsStatus = .granted
-
-        // Reverse geocode to get city name
-        if let request = MKReverseGeocodingRequest(location: location) {
-            request.getMapItems { [weak self] mapItems, _ in
-                let name = mapItems?.first?.name
-                DispatchQueue.main.async {
-                    self?.store?.setLocation(
-                        lat: location.coordinate.latitude,
-                        lon: location.coordinate.longitude,
-                        name: name
-                    )
-                }
-            }
-        } else {
-            store?.setLocation(lat: location.coordinate.latitude, lon: location.coordinate.longitude, name: nil)
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let coordinate = locations.last?.coordinate else { return }
+        let lat = coordinate.latitude
+        let lon = coordinate.longitude
+        Task { @MainActor [weak self] in
+            self?.store?.handleLocationUpdate(latitude: lat, longitude: lon)
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        store?.gpsStatus = .error
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor [weak self] in
+            self?.store?.handleLocationError()
+        }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            store?.gpsStatus = .granted
-            manager.requestLocation()
-        case .denied, .restricted:
-            store?.gpsStatus = .denied
-        default:
-            break
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor [weak self] in
+            self?.store?.handleAuthorizationChange(status)
         }
     }
 }

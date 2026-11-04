@@ -1,6 +1,6 @@
 import Foundation
 
-enum ProximityType: String, Codable {
+enum ProximityType: String, Codable, Sendable {
     case moonriseSunrise = "moonrise-sunrise"
     case moonriseSunset = "moonrise-sunset"
     case moonsetSunrise = "moonset-sunrise"
@@ -28,9 +28,17 @@ enum ProximityType: String, Codable {
         case .moonriseSunset, .moonsetSunset: return "Sunset"
         }
     }
+
+    /// Cross pairs (moonrise+sunset, moonset+sunrise): the moon is opposite the Sun.
+    var isCrossPair: Bool {
+        switch self {
+        case .moonriseSunset, .moonsetSunrise: return true
+        case .moonriseSunrise, .moonsetSunset: return false
+        }
+    }
 }
 
-enum ProximityQuality {
+enum ProximityQuality: Sendable {
     case excellent
     case good
     case fair
@@ -44,11 +52,13 @@ enum ProximityQuality {
     }
 }
 
-struct ProximityEvent: Identifiable {
+struct ProximityEvent: Identifiable, Sendable {
     var id: String { "\(date.timeIntervalSince1970)-\(type.rawValue)" }
+    /// Local midnight of the day the pair belongs to (location time zone).
     var date: Date
     var type: ProximityType
     var timeDiffMinutes: Double
+    /// Azimuth deviation (from the Sun for same-event pairs, from the anti-solar point for cross pairs).
     var azimuthDiff: Double
     var moonIllumination: Double
     var description: String

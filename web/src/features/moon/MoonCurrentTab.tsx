@@ -1,21 +1,26 @@
 import { useMemo } from 'react'
-import { differenceInDays } from 'date-fns'
 import { Calendar, Compass, Ruler, Clock } from 'lucide-react'
 import { MoonPhaseIcon } from '@/components/shared/MoonPhaseIcon'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { useSettingsStore } from '@/stores/settings-store'
 import { findFullMoons } from '@/lib/astronomy/full-moon-finder'
 import { formatTime, formatDegrees, formatDistance, formatAzimuthDirection, formatDateShort } from '@/lib/formatting'
+import { formatRelativeDays } from '@/lib/time/zone'
 import type { MoonData } from '@/types'
 
 interface MoonCurrentTabProps {
   moonData: MoonData
   now: Date
+  dayStart: Date
+  timeZone: string
 }
 
-export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
+export function MoonCurrentTab({ moonData, now, dayStart, timeZone }: MoonCurrentTabProps) {
   const { timeFormat } = useSettingsStore()
-  const nextFullMoon = useMemo(() => findFullMoons(now, 2)[0] ?? null, [now])
+  const nextFullMoon = useMemo(
+    () => findFullMoons(dayStart, 2, timeZone).find((fm) => fm.date.getTime() >= now.getTime()) ?? null,
+    [dayStart, now, timeZone],
+  )
 
   return (
     <div className="space-y-5">
@@ -56,7 +61,7 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
           <InfoRow
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="Next Full Moon"
-            value={`${formatDateShort(nextFullMoon.date)} · ${nextFullMoon.folkName} · in ${differenceInDays(nextFullMoon.date, now)}d`}
+            value={`${formatDateShort(nextFullMoon.date, timeZone)} · ${nextFullMoon.folkName} · ${formatRelativeDays(nextFullMoon.date, now, timeZone)}`}
           />
         )}
       </div>
@@ -65,12 +70,12 @@ export function MoonCurrentTab({ moonData, now }: MoonCurrentTabProps) {
       <div className="surface">
         <InfoRow
           label="Moonrise"
-          value={moonData.moonrise ? formatTime(moonData.moonrise, timeFormat) : '—'}
+          value={formatTime(moonData.moonrise, timeFormat, timeZone)}
           icon={<span className="text-xs">🌙↑</span>}
         />
         <InfoRow
           label="Moonset"
-          value={moonData.moonset ? formatTime(moonData.moonset, timeFormat) : '—'}
+          value={formatTime(moonData.moonset, timeFormat, timeZone)}
           icon={<span className="text-xs">🌙↓</span>}
         />
       </div>

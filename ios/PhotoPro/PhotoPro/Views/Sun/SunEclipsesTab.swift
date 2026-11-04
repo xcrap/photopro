@@ -62,11 +62,12 @@ struct SunEclipsesTab: View {
             eclipse, lat: locationStore.latitude, lon: locationStore.longitude
         )
         let weatherScore = weatherStore.getScoreForTime(eclipse.date, profile: .sunset)
+        let timeZone = locationStore.timeZone
 
         VStack(alignment: .leading, spacing: 12) {
             // Row 1: Date + weather badge + type badge
             HStack(alignment: .center) {
-                Text(Formatting.formatDate(eclipse.date))
+                Text(Formatting.formatDate(eclipse.date, timeZone: timeZone))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.foreground)
 
@@ -83,7 +84,7 @@ struct SunEclipsesTab: View {
             }
 
             // Row 2: Subtitle
-            Text("\(eclipse.type.rawValue.capitalized) Solar Eclipse · Peak \(eclipse.peakTime)")
+            Text("\(eclipse.type.rawValue.capitalized) Solar Eclipse · Peak \(Formatting.formatTime(eclipse.date, format: settingsStore.timeFormat, timeZone: timeZone)) \(Formatting.timeZoneAbbreviation(timeZone, at: eclipse.date))")
                 .font(.caption)
                 .foregroundStyle(Theme.foreground.opacity(0.6))
 
@@ -138,6 +139,7 @@ struct SunEclipsesTab: View {
         case .partial: return Color(red: 0.99, green: 0.88, blue: 0.54)   // amber-200
         case .annular: return Color(red: 0.99, green: 0.76, blue: 0.54)   // orange-200
         case .penumbral: return Theme.mutedForeground
+        case .hybrid: return Color(red: 0.99, green: 0.45, blue: 0.45)
         }
     }
 }

@@ -5,7 +5,9 @@ struct NightMeteorsTab: View {
     @Environment(WeatherStore.self) private var weatherStore
 
     private var showers: [MeteorShowerEvent] {
-        MeteorCalculator.getUpcomingMeteorShowers(fromDate: Date(), months: 12, userLatitude: locationStore.latitude)
+        MeteorCalculator.getUpcomingMeteorShowers(
+            fromDate: Date(), months: 12, userLatitude: locationStore.latitude, timeZone: locationStore.timeZone
+        )
     }
 
     var body: some View {
@@ -48,7 +50,7 @@ struct NightMeteorsTab: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
-                        Text(Formatting.formatDate(shower.peakDate))
+                        Text(Formatting.formatDate(shower.peakDate, timeZone: locationStore.timeZone))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.foreground)
 
@@ -67,18 +69,20 @@ struct NightMeteorsTab: View {
                 Spacer()
 
                 // Star rating
+                let rating = MeteorCalculator.getZhrRating(shower.zhr)
                 HStack(spacing: 2) {
-                    let rating = MeteorCalculator.getZhrRating(shower.zhr)
                     ForEach(0..<3, id: \.self) { i in
-                        Image(systemName: i < rating ? "star.fill" : "star.fill")
+                        Image(systemName: i < rating ? "star.fill" : "star")
                             .font(.caption2)
                             .foregroundStyle(
                                 i < rating
                                     ? Theme.sunAccent
-                                    : Color.white.opacity(0.1)
+                                    : Color.white.opacity(0.25)
                             )
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(rating) of 3 stars")
             }
 
             // Row 2: Description
@@ -90,7 +94,7 @@ struct NightMeteorsTab: View {
             // Row 3: Metadata pills
             FlowLayout(spacing: 6) {
                 metadataPill("ZHR: \(shower.zhr)/hour")
-                metadataPill("🌖 \(Int(shower.moonIllumination))% moon")
+                metadataPill("🌖 \(Int(shower.moonIllumination.rounded()))% moon")
                 metadataPill(shower.visibilityRating, icon: "eye")
             }
 

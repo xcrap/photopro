@@ -3,6 +3,63 @@
 > **Canonical reference** for all prediction and scoring algorithms.
 > Both `web/` (TypeScript) and `ios/` (Swift) must implement these rules identically.
 
+## Time Zones & Day Boundaries
+
+All "local" times and calendar days use the **location's** time zone, not the device's.
+
+| Rule | Value |
+|------|-------|
+| Location time zone | IANA `timezone` returned by Open-Meteo (`timezone=auto`) for the current coordinates; persisted with saved locations |
+| Fallback | Device time zone (before the first forecast for a location, or offline) |
+| Display | Every time and date shown in the UI is formatted in the location time zone |
+
+Day-dependent calculations all use location-local days:
+
+- Selected day / "Today" / "Tomorrow" (calendar-day difference, not 24 h periods)
+- Sun times, moonrise/moonset, proximity scan
+- Daily weather grouping and candidate hours
+- Calendar month for folk names, blue moons and black moons
+
+## Sun Times
+
+- Call SunCalc `getTimes` with the instant of **12:00 local time** (location time zone) on the selected date. SunCalc returns the solar day nearest the given instant, so passing local midnight or an arbitrary time can return the previous or next day.
+- **Polar day/night:** when the Sun never reaches an event's altitude on that day, the event is **absent** (`null` / `nil`). Never substitute another time.
+  - UI shows `—`, plus "Sun stays up all day" (sun altitude > 0 at solar noon and no sunset) or "Sun stays below the horizon" (no sunrise and altitude < 0 at solar noon).
+  - Countdown and other features skip absent events.
+
+## Moon Ephemeris
+
+SunCalc's moon distance (`385001 − 20905·cos M`) can never go below 364,096 km and its phase is only accurate to about ±3 h, so these are computed with Meeus, *Astronomical Algorithms* ch. 47 (full periodic terms in the appendix):
+
+- **Moon distance** = `385000.56 + Σr / 1000` km (geocentric). Used for supermoons and the displayed distance.
+- **Moon ecliptic longitude** λ☾ = `L′ + Σl / 1,000,000` degrees, where Σl includes the additive terms `3958·sin A1 + 1962·sin(L′ − F) + 318·sin A2`.
+- **Sun apparent longitude** λ☉ = Solar Longitude (below) − 0.00569°.
+- **Elongation** = `(λ☾ − λ☉)` normalised to 0–360°. 0° = new moon, 180° = full moon.
+
+Accuracy: about 1–2 min for new/full moon times, and a few km for distance. Check against Meeus example 47.a (1992-04-12 00:00 UTC):
+- λ☾ = 133.162655°
+- distance = 368,409.7 km
+
+SunCalc is still used for rise/set times, altitude/azimuth, and illumination fraction.
+
+## Full & New Moon Detection
+
+1. Sample the elongation once per day across the range.
+2. **Full moon:** elongation goes from `< 180°` to `≥ 180°` between two consecutive samples.
+3. **New moon:** elongation wraps around, from `> 300°` to `< 60°`.
+4. Bisect inside that one-day interval on the side of the target (before or after) until the interval is under 1 s. The result is the exact instant.
+5. Folk name = the full moon's calendar month, in location-local time.
+
+## Special Moon Events
+
+| Event | Rule |
+|-------|------|
+| **Supermoon** | Full moon with Meeus distance < 362,000 km. Mark `isSupermoon` on the full moon itself, too. |
+| **Blue moon** | Second full moon in the same calendar month (location time zone) |
+| **Black moon** | Second new moon in the same calendar month (location time zone) |
+
+Sanity check (2024–2026): supermoons on 2024-08-19, 2024-09-18, 2024-10-17, 2024-11-15, 2025-10-07, 2025-11-05, 2025-12-04, 2026-11-24 and 2026-12-24.
+
 ## Weather Scoring
 
 ### Sub-scores
@@ -14,7 +71,9 @@
 | **Blocking cloud** | `100 - max(lowCloud, midCloud)` | Low/mid clouds block the sun |
 | **Clear sky** | `100 - totalCloudCover` | |
 | **Humidity** | `100 - ((humidity - 65) / (95 - 65)) * 100`, clamped 0–100 | Ideal ≤ 65%, max ≥ 95% |
-| **Moon** | `100 - moonIlluminationPercent` | Less moon = better night sky |
+| **Moon** | `100 - moonIlluminationPercent` | Illumination at the scored hour (SunCalc fraction × 100) |
+
+The night profile **always** includes the moon sub-score. If a caller doesn't pass an illumination, compute it for the scored hour. Never default it to 100.
 
 ### Sunset profile
 
@@ -46,63 +105,69 @@
 | Fair | ≥ 50 |
 | Poor | < 50 |
 
+### Daily photo score
+
+- Group hourly points by calendar day in the location time zone.
+- Candidate hours, in location-local time:
+  - **Sunset profile:** 16:00–22:00 inclusive.
+  - **Night profile:** 23:00 and 00:00–04:00.
+- Daily score = the highest-scoring candidate. Keep its hour as the observation time.
+- Show at most 7 days.
+
 ### Trend indicator
 
-- Compare score for the same profile/time 24 h later.
-- `↗ improving`, `↘ getting worse`, `→ steady`.
+- Compare the day's score with the score for the **same profile at the same time 24 h later** (observation time + 24 h). Don't compare against the next day's best hour.
+- Delta ≥ +10 → `↗ improving`. Delta ≤ −10 → `↘ getting worse`. Otherwise `→ steady`.
 
 ### Opportunity ranking (combined score)
 
 - Astronomy score = `0.6 × azimuthAlignment + 0.4 × timingAlignment`
-- Combined score = `0.5 × astronomy + 0.5 × weather`
+  - azimuthAlignment = `100 − (azimuthDiff / 30) × 100`, clamped
+  - timingAlignment = `100 − (timeDiffMinutes / 30) × 100`, clamped
+- Combined score = `0.5 × astronomy + 0.5 × weather` (astronomy only if no forecast covers the event)
+- Weather for an opportunity = sunset profile at the Sun event time.
 
 ## Proximity Finder (Moon/Sun Photo Opportunities)
 
-Detects when moon and sun rise/set events occur near each other — ideal for dramatic photography.
+Detects moon and sun rise/set events that happen close together in time, with the moon in a photogenic position.
 
 ### Thresholds
 
 | Parameter | Value |
 |-----------|-------|
 | Max time difference | 30 minutes |
-| Max azimuth difference | 30 degrees |
+| Max azimuth deviation | 30 degrees |
+| Min moon illumination | 5% |
 
 ### Logic
 
-1. For each day in the scan range, compute all 4 event pairs: (moonrise, sunrise), (moonrise, sunset), (moonset, sunrise), (moonset, sunset).
-2. Filter pairs where time difference ≤ 30 min AND circular azimuth difference ≤ 30°.
-3. Azimuth difference uses circular math: `min(abs(a - b), 360 - abs(a - b))`.
-4. Quality is scored by combining azimuth alignment and timing closeness.
+1. For each local day in the scan range, compute all 4 event pairs:
+   - (moonrise, sunrise)
+   - (moonrise, sunset)
+   - (moonset, sunrise)
+   - (moonset, sunset)
+2. Keep pairs whose time difference is ≤ 30 min.
+3. At the midpoint of the two events, compute the azimuth deviation using circular math, `circ(a, b) = min(|a − b|, 360 − |a − b|)`:
+   - **Same-event pairs** (moonrise+sunrise, moonset+sunset), where the moon is beside the Sun: deviation = `circ(moonAz, sunAz)`.
+   - **Cross pairs** (moonrise+sunset, moonset+sunrise), where the moon is opposite the Sun (the full-moon shot): deviation = `circ(moonAz, sunAz + 180)`.
+4. Keep pairs with deviation ≤ 30° **and** moon illumination ≥ 5% at the midpoint. A moon fainter than that is invisible next to the Sun.
+5. `azimuthDiff` = that deviation. Quality and astronomy score use it as-is.
 
 ## Countdown (Next Photography Event)
 
 ### Considered events
 
-**Sun:** Blue hour AM, Sunrise, Golden hour AM, Golden hour PM, Sunset, Blue hour PM.
+**Sun:** Blue hour AM, Sunrise, Golden hour AM, Golden hour PM, Sunset, Blue hour PM (absent events skipped).
 **Moon:** Moonrise, Moonset.
 **Meteors:** Peak intensity showers (ZHR ≥ 50) within 30 days.
 
 ### Logic
 
-1. Collect all candidate event times.
+1. Collect all candidate event times for today and tomorrow (location-local days).
 2. Filter for future events only (`time > now`).
 3. Sort chronologically.
 4. Return the nearest event with `secondsUntil`.
 5. Updates every 30 seconds.
-
-## Full Moon Detection
-
-- Uses binary search on moon illumination phase to find peak full moon time.
-- Target phase = 0.5 (full illumination).
-- Refines to millisecond precision by comparing distance from 0.5.
-
-## Special Moon Events
-
-| Event | Rule |
-|-------|------|
-| **Supermoon** | Full moon with distance < 362,000 km (within 90% of perigee) |
-| **Blue moon** | Second full moon in the same calendar month |
-| **Black moon** | Second new moon in the same calendar month |
 
 ## Visibility Rating (Altitude-Based)
 
@@ -118,6 +183,12 @@ Used for meteor showers, comets, and eclipses.
 | Not visible | < 10° |
 
 ## Meteor Showers
+
+### Dates
+
+- Peak and activity dates come from the solar longitudes in `meteor-showers.json`.
+- Compute each shower for years **Y − 1, Y and Y + 1**, where Y is the reference date's year. Showers that cross New Year (Quadrantids) are then found in early January.
+- `isActive` is relative to the reference date, not the wall clock.
 
 ### ZHR star ratings
 
@@ -151,9 +222,10 @@ Uses the altitude-based visibility rating above.
 
 ## Eclipse Visibility
 
-- **Solar eclipses**: Bounding-box check against predefined visibility regions per eclipse.
-- **Lunar eclipses**: Altitude sampling — check moon altitude at multiple points during eclipse duration; percentage of samples where moon is above horizon = visibility score.
-- **São Miguel / Azores override**: Specific coordinate-based visibility overrides for known eclipses.
+- **Solar eclipses:** bounding-box check against the predefined visibility regions for each eclipse. The best matching region's percentage wins.
+- **Lunar eclipses:** sample the moon's altitude every 5 minutes across the eclipse duration, centred on the peak. Visibility score = percentage of samples with the moon above the horizon. Region boxes aren't used for lunar eclipses.
+- **São Miguel / Azores override:** if the location is inside the override bounds and the eclipse has an entry, the override replaces the computed value. Keys are the eclipse instant in ISO 8601 with milliseconds (`2026-08-12T17:46:00.000Z`).
+- The peak time is the eclipse `date` instant, displayed in the location time zone.
 
 ## Zodiac Signs
 
@@ -168,5 +240,94 @@ Calculated from Julian centuries since J2000.0 using:
 
 ## Weather Data Source
 
-- **API**: Open-Meteo hourly forecast (free, no API key).
-- **Cache**: localStorage (web) / UserDefaults (iOS) with 3-hour TTL.
+- **API:** Open-Meteo hourly forecast (free, no API key).
+  - Request `timezone=auto` and `timeformat=unixtime`. Hourly `time` values are then absolute instants, and `timezone` gives the location's IANA zone.
+  - Never parse offset-less local timestamps as device time.
+  - Prefer `forecast_days=7`, which starts at the location's local today. If you send explicit `start_date` / `end_date` instead, they must be location-local dates formatted with a fixed Gregorian / POSIX locale.
+- **Cache:** localStorage (web) / UserDefaults (iOS), 3-hour TTL.
+  - Key = the **requested** coordinates rounded to 3 decimals. Open-Meteo snaps responses to its grid, so the coordinates it returns never match.
+  - Keep at most the 10 most recent locations.
+- **Refetch** whenever the current location changes. Ignore responses for a location that is no longer current.
+
+## Appendix — Meeus Table 47.A (Moon longitude and distance)
+
+Argument = `D·D + M·M + M′·M′ + F·F`, with these fundamental arguments (degrees, T = Julian centuries since J2000.0):
+
+```
+L′ = 218.3164477 + 481267.88123421 T − 0.0015786 T² + T³/538841 − T⁴/65194000
+D  = 297.8501921 + 445267.1114034 T − 0.0018819 T² + T³/545868 − T⁴/113065000
+M  = 357.5291092 + 35999.0502909 T − 0.0001536 T² + T³/24490000
+M′ = 134.9633964 + 477198.8675055 T + 0.0087414 T² + T³/69699 − T⁴/14712000
+F  = 93.2720950 + 483202.0175233 T − 0.0036539 T² − T³/3526000 + T⁴/863310000
+A1 = 119.75 + 131.849 T
+A2 = 53.09 + 479264.290 T
+E  = 1 − 0.002516 T − 0.0000074 T²
+```
+
+- Σl = Σ coefficient × sin(argument).
+- Σr = Σ coefficient × cos(argument).
+- Multiply a term by `E` when |M| = 1, and by `E²` when |M| = 2.
+- Σl is in 10⁻⁶ degrees; Σr is in 10⁻³ km.
+
+| D | M | M′ | F | Σl | Σr |
+|---|---|----|---|----|----|
+| 0 | 0 | 1 | 0 | 6288774 | -20905355 |
+| 2 | 0 | -1 | 0 | 1274027 | -3699111 |
+| 2 | 0 | 0 | 0 | 658314 | -2955968 |
+| 0 | 0 | 2 | 0 | 213618 | -569925 |
+| 0 | 1 | 0 | 0 | -185116 | 48888 |
+| 0 | 0 | 0 | 2 | -114332 | -3149 |
+| 2 | 0 | -2 | 0 | 58793 | 246158 |
+| 2 | -1 | -1 | 0 | 57066 | -152138 |
+| 2 | 0 | 1 | 0 | 53322 | -170733 |
+| 2 | -1 | 0 | 0 | 45758 | -204586 |
+| 0 | 1 | -1 | 0 | -40923 | -129620 |
+| 1 | 0 | 0 | 0 | -34720 | 108743 |
+| 0 | 1 | 1 | 0 | -30383 | 104755 |
+| 2 | 0 | 0 | -2 | 15327 | 10321 |
+| 0 | 0 | 1 | 2 | -12528 | 0 |
+| 0 | 0 | 1 | -2 | 10980 | 79661 |
+| 4 | 0 | -1 | 0 | 10675 | -34782 |
+| 0 | 0 | 3 | 0 | 10034 | -23210 |
+| 4 | 0 | -2 | 0 | 8548 | -21636 |
+| 2 | 1 | -1 | 0 | -7888 | 24208 |
+| 2 | 1 | 0 | 0 | -6766 | 30824 |
+| 1 | 0 | -1 | 0 | -5163 | -8379 |
+| 1 | 1 | 0 | 0 | 4987 | -16675 |
+| 2 | -1 | 1 | 0 | 4036 | -12831 |
+| 2 | 0 | 2 | 0 | 3994 | -10445 |
+| 4 | 0 | 0 | 0 | 3861 | -11650 |
+| 2 | 0 | -3 | 0 | 3665 | 14403 |
+| 0 | 1 | -2 | 0 | -2689 | -7003 |
+| 2 | 0 | -1 | 2 | -2602 | 0 |
+| 2 | -1 | -2 | 0 | 2390 | 10056 |
+| 1 | 0 | 1 | 0 | -2348 | 6322 |
+| 2 | -2 | 0 | 0 | 2236 | -9884 |
+| 0 | 1 | 2 | 0 | -2120 | 5751 |
+| 0 | 2 | 0 | 0 | -2069 | 0 |
+| 2 | -2 | -1 | 0 | 2048 | -4950 |
+| 2 | 0 | 1 | -2 | -1773 | 4130 |
+| 2 | 0 | 0 | 2 | -1595 | 0 |
+| 4 | -1 | -1 | 0 | 1215 | -3958 |
+| 0 | 0 | 2 | 2 | -1110 | 0 |
+| 3 | 0 | -1 | 0 | -892 | 3258 |
+| 2 | 1 | 1 | 0 | -810 | 2616 |
+| 4 | -1 | -2 | 0 | 759 | -1897 |
+| 0 | 2 | -1 | 0 | -713 | -2117 |
+| 2 | 2 | -1 | 0 | -700 | 2354 |
+| 2 | 1 | -2 | 0 | 691 | 0 |
+| 2 | -1 | 0 | -2 | 596 | 0 |
+| 4 | 0 | 1 | 0 | 549 | -1423 |
+| 0 | 0 | 4 | 0 | 537 | -1117 |
+| 4 | -1 | 0 | 0 | 520 | -1571 |
+| 1 | 0 | -2 | 0 | -487 | -1739 |
+| 2 | 1 | 0 | -2 | -399 | 0 |
+| 0 | 0 | 2 | -2 | -381 | -4421 |
+| 1 | 1 | 1 | 0 | 351 | 0 |
+| 3 | 0 | -2 | 0 | -340 | 0 |
+| 4 | 0 | -3 | 0 | 330 | 0 |
+| 2 | -1 | 2 | 0 | 327 | 0 |
+| 0 | 2 | 1 | 0 | -323 | 1165 |
+| 1 | 1 | -1 | 0 | 299 | 0 |
+| 2 | 0 | 3 | 0 | 294 | 0 |
+| 2 | 0 | -1 | -2 | 0 | 8752 |

@@ -60,11 +60,12 @@ struct MoonEclipsesTab: View {
         let visibility = EclipseCalculator.getVisibilityForLocation(
             eclipse, lat: locationStore.latitude, lon: locationStore.longitude
         )
+        let timeZone = locationStore.timeZone
 
         VStack(alignment: .leading, spacing: 12) {
             // Row 1: Date + type badge
             HStack(alignment: .center) {
-                Text(Formatting.formatDate(eclipse.date))
+                Text(Formatting.formatDate(eclipse.date, timeZone: timeZone))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.foreground)
 
@@ -77,7 +78,7 @@ struct MoonEclipsesTab: View {
             }
 
             // Row 2: Subtitle
-            Text("\(eclipse.type.rawValue.capitalized) Lunar Eclipse · Peak \(eclipse.peakTime)")
+            Text("\(eclipse.type.rawValue.capitalized) Lunar Eclipse · Peak \(Formatting.formatTime(eclipse.date, format: settingsStore.timeFormat, timeZone: timeZone)) \(Formatting.timeZoneAbbreviation(timeZone, at: eclipse.date))")
                 .font(.caption)
                 .foregroundStyle(Theme.foreground.opacity(0.6))
 
@@ -132,6 +133,7 @@ struct MoonEclipsesTab: View {
         case .partial: return Color(red: 0.99, green: 0.88, blue: 0.54)   // amber-200
         case .annular: return Color(red: 0.99, green: 0.76, blue: 0.54)   // orange-200
         case .penumbral: return Theme.mutedForeground
+        case .hybrid: return Color(red: 0.99, green: 0.45, blue: 0.45)
         }
     }
 }

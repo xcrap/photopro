@@ -34,6 +34,7 @@ import { SectionHeader } from '@/components/shared/SectionHeader'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useGeolocation } from '@/hooks/useGeolocation'
+import { useTimeZone } from '@/hooks/useTimeZone'
 import type { TimeFormat } from '@/types'
 
 function normalizeCoordinateInput(value: string): string {
@@ -101,6 +102,7 @@ export function SettingsPage() {
     setEclipseYearsRange,
   } = useSettingsStore()
   const { requestLocation } = useGeolocation({ autoRequest: false })
+  const timeZone = useTimeZone()
 
   const [manualLat, setManualLat] = useState(latitude.toString())
   const [manualLon, setManualLon] = useState(longitude.toString())
@@ -141,7 +143,7 @@ export function SettingsPage() {
     if (loc) {
       setGpsEnabled(false)
       setGpsStatus('idle')
-      setLocation(loc.latitude, loc.longitude, loc.name)
+      setLocation(loc.latitude, loc.longitude, loc.name, loc.timeZone ?? null)
       setManualLat(loc.latitude.toString())
       setManualLon(loc.longitude.toString())
       setManualError(null)
@@ -237,9 +239,10 @@ export function SettingsPage() {
           <div className="rounded-xl bg-white/[0.03] p-3.5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/40">Current</p>
             <p className="mt-1 text-sm font-medium">{name || 'Unknown'}</p>
-            <p className="break-all text-xs tabular-nums text-muted-foreground/50">
+            <p className="break-all text-xs tabular-nums text-muted-foreground">
               {latitude.toFixed(4)}, {longitude.toFixed(4)}
             </p>
+            <p className="text-xs text-muted-foreground">Times shown in {timeZone}</p>
           </div>
 
           {/* Manual Coordinates */}
@@ -326,11 +329,13 @@ export function SettingsPage() {
                   {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
                 </p>
               </button>
-              <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+              {/* Always visible on touch screens; hover-revealed on desktop. */}
+              <div className="flex shrink-0 gap-0.5 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground/50 hover:text-foreground"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  aria-label={`Edit ${loc.name}`}
                   onClick={() => openEditDialog(loc.id)}
                 >
                   <Pencil className="h-3 w-3" />
@@ -338,8 +343,11 @@ export function SettingsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
-                  onClick={() => removeSavedLocation(loc.id)}
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete ${loc.name}`}
+                  onClick={() => {
+                    if (window.confirm(`Delete "${loc.name}"?`)) removeSavedLocation(loc.id)
+                  }}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>

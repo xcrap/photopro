@@ -6,11 +6,9 @@ struct SunCurrentTab: View {
     @Environment(SettingsStore.self) private var settingsStore
 
     private var sunTimes: SunTimes {
-        SunCalculator.getSunTimes(date: selectedDate, lat: locationStore.latitude, lon: locationStore.longitude)
-    }
-
-    private var sunPosition: SunPosition {
-        SunCalculator.getSunPosition(date: selectedDate, lat: locationStore.latitude, lon: locationStore.longitude)
+        SunCalculator.getSunTimes(
+            date: selectedDate, lat: locationStore.latitude, lon: locationStore.longitude, timeZone: locationStore.timeZone
+        )
     }
 
     var body: some View {
@@ -25,6 +23,11 @@ struct SunCurrentTab: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.sunAccent)
                     .padding(.bottom, Theme.spacingLG)
+
+                if let message = times.polarState.message {
+                    PolarNotice(message: message)
+                        .padding(.bottom, Theme.spacingSM)
+                }
 
                 InfoRow(icon: "sunrise", label: "Sunrise", value: fmt(times.sunrise))
                 Divider().opacity(0.1)
@@ -42,16 +45,16 @@ struct SunCurrentTab: View {
                     .padding(.bottom, Theme.spacingLG)
 
                 InfoRow(icon: "paintbrush", label: "Morning Blue Hour",
-                        value: "\(fmt(times.blueHourMorningStart)) – \(fmt(times.blueHourMorningEnd))")
+                        value: range(times.blueHourMorningStart, times.blueHourMorningEnd))
                 Divider().opacity(0.1)
                 InfoRow(icon: "sparkles", label: "Morning Golden Hour",
-                        value: "\(fmt(times.goldenHourMorningStart)) – \(fmt(times.goldenHourMorningEnd))")
+                        value: range(times.goldenHourMorningStart, times.goldenHourMorningEnd))
                 Divider().opacity(0.1)
                 InfoRow(icon: "sparkles", label: "Evening Golden Hour",
-                        value: "\(fmt(times.goldenHourStart)) – \(fmt(times.goldenHourEnd))")
+                        value: range(times.goldenHourStart, times.goldenHourEnd))
                 Divider().opacity(0.1)
                 InfoRow(icon: "paintbrush", label: "Evening Blue Hour",
-                        value: "\(fmt(times.blueHourEveningStart)) – \(fmt(times.blueHourEveningEnd))")
+                        value: range(times.blueHourEveningStart, times.blueHourEveningEnd))
             }
             .surfaceCard(accent: Theme.sunAccent)
 
@@ -78,7 +81,11 @@ struct SunCurrentTab: View {
         }
     }
 
-    private func fmt(_ date: Date) -> String {
-        Formatting.formatTime(date, format: settingsStore.timeFormat)
+    private func fmt(_ date: Date?) -> String {
+        Formatting.formatTime(date, format: settingsStore.timeFormat, timeZone: locationStore.timeZone)
+    }
+
+    private func range(_ start: Date?, _ end: Date?) -> String {
+        Formatting.formatTimeRange(start, end, format: settingsStore.timeFormat, timeZone: locationStore.timeZone)
     }
 }
