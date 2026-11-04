@@ -4,8 +4,14 @@ import Combine
 
 /// Sunrise/sunset map planner (ported from Waka Sun): rays from the pin toward the day's sun and
 /// moon rise/set, the Sun and Moon now, and the solstice extremes, plus terrain first/last light.
-/// Long-press the map or drag the pin to move the location.
+/// Double-tap or long-press the map, drag the pin, or search a place to move the location.
 struct MapPlannerPage: View {
+    /// Which body's rays and rows to show.
+    enum Bodies: String, CaseIterable, Identifiable {
+        case both = "Sun & Moon", sun = "Sun", moon = "Moon"
+        var id: String { rawValue }
+    }
+
     @Environment(LocationStore.self) private var locationStore
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(HorizonStore.self) private var horizonStore
@@ -17,6 +23,9 @@ struct MapPlannerPage: View {
     @State private var dragCoordinate: CLLocationCoordinate2D?
     @State private var showImagery = false
     @State private var didCenter = false
+    @State private var bodies: Bodies = .both
+    @State private var search = PlaceSearchModel()
+    @State private var searchPresented = false
 
     private let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
@@ -34,10 +43,13 @@ struct MapPlannerPage: View {
     var body: some View {
         let timeZone = locationStore.timeZone
         let events = PlannerRays.events(day: selectedDate, now: now, lat: pin.latitude, lon: pin.longitude, timeZone: timeZone)
+        let sunEvents = events.filter { !$0.isMoon }
+        let moonEvents = events.filter(\.isMoon)
+        let shown = bodies == .sun ? sunEvents : bodies == .moon ? moonEvents : events
 
         GeometryReader { geo in
             VStack(spacing: 0) {
-                map(events: events)
+                map(events: shown)
                     .frame(height: max(280, geo.size.height * 0.52))
                     .overlay(alignment: .bottomTrailing) {
                         Button {
@@ -54,10 +66,22 @@ struct MapPlannerPage: View {
 
                 ScrollView {
                     VStack(spacing: Theme.spacingLG) {
+                        Picker("Show", selection: $bodies) {
+                            ForEach(Bodies.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
                         DateNavigator(selectedDate: $selectedDate)
                         locationHeader(timeZone: timeZone)
-                        eventsCard(events: events, timeZone: timeZone)
-                        terrainCard(timeZone: timeZone)
+                        if bodies != .moon {
+                            sunCard(events: sunEvents, timeZone: timeZone)
+                        }
+                        if bodies != .sun {
+                            moonCard(events: moonEvents, timeZone: timeZone)
+                        }
+                        Text("Terrain only: trees and buildings aren't in the elevation data.")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.mutedForeground)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.horizontal, Theme.spacingLG)
                     .padding(.vertical, Theme.spacingMD)
@@ -67,6 +91,31 @@ struct MapPlannerPage: View {
         .background(Theme.background)
         .navigationTitle("Sun & Moon Map")
         .toolbarTitleDisplayMode(.inline)
+        .searchable(text: $search.query, isPresented: $searchPresented,
+                    placement: .navigationBarDrawer(displayMode: .always), prompt: "Search places")
+        .autocorrectionDisabled()
+        .searchSuggestions {
+            ForEach(search.suggestions) { suggestion in
+                Button {
+                    Task { await pick(suggestion) }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(suggestion.title)
+                            .foregroundStyle(Theme.foreground)
+                        if !suggestion.subtitle.isEmpty {
+                            Text(suggestion.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                }
+            }
+            if let message = search.errorMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(Theme.mutedForeground)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -100,7 +149,7 @@ struct MapPlannerPage: View {
                 ForEach(events) { event in
                     let line = Geodesy.bearingLine(from: pin, bearing: event.azimuth, meters: rayLength)
                     let color = PlannerColors.color(for: event.kind)
-                    if event.isSolstice || event.kind == .sunBelow {
+                    if event.isDashed {
                         MapPolyline(coordinates: line)
                             .stroke(color.opacity(0.9), style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [7, 6]))
                     } else {
@@ -139,6 +188,15 @@ struct MapPlannerPage: View {
             .onMapCameraChange(frequency: .onEnd) { context in
                 visibleRegion = context.region
             }
+            // Simultaneous, like the long-press: a plain onTapGesture loses to MapKit's own gestures.
+            .simultaneousGesture(
+                SpatialTapGesture(count: 2, coordinateSpace: .local)
+                    .onEnded { value in
+                        if let coordinate = proxy.convert(value.location, from: .local) {
+                            commit(coordinate)
+                        }
+                    }
+            )
             .simultaneousGesture(
                 LongPressGesture(minimumDuration: 0.5)
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
@@ -150,7 +208,7 @@ struct MapPlannerPage: View {
                     }
             )
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Map. Long-press to move the location, or drag the pin.")
+            .accessibilityLabel("Map. Double-tap or long-press to move the location, or drag the pin.")
         }
     }
 
@@ -169,11 +227,20 @@ struct MapPlannerPage: View {
         .accessibilityHint("Drag to move the location")
     }
 
-    private func recenter() {
-        let span = visibleRegion?.span ?? MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
+    private func recenter(span: MKCoordinateSpan? = nil) {
+        let span = span ?? visibleRegion?.span ?? MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
         withAnimation {
             position = .region(MKCoordinateRegion(center: pin, span: span))
         }
+    }
+
+    /// Move the location to a searched place and fly the map there.
+    private func pick(_ suggestion: PlaceSearchModel.Suggestion) async {
+        guard let place = await search.resolve(suggestion) else { return }
+        locationStore.useSearchedPlace(place)
+        search.clear()
+        searchPresented = false
+        recenter(span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35))
     }
 
     private func commit(_ coordinate: CLLocationCoordinate2D) {
@@ -191,16 +258,16 @@ struct MapPlannerPage: View {
                  + " · \(timeZone.identifier) (\(Formatting.timeZoneAbbreviation(timeZone, at: selectedDate)))")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(Theme.mutedForeground)
-            Text("Long-press the map or drag the pin to move it.")
+            Text("Double-tap the map, long-press, or drag the pin to move it.")
                 .font(.caption2)
                 .foregroundStyle(Theme.mutedForeground)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func eventsCard(events: [PlannerEvent], timeZone: TimeZone) -> some View {
+    private func sunCard(events: [PlannerEvent], timeZone: TimeZone) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Label("Directions", systemImage: "location.north.line")
+            Label("Sun", systemImage: "sun.max.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.sunAccent)
                 .padding(.bottom, Theme.spacingSM)
@@ -214,14 +281,37 @@ struct MapPlannerPage: View {
                 PolarNotice(message: message)
                     .padding(.top, Theme.spacingSM)
             }
+            terrainSection(.sun, timeZone: timeZone)
         }
         .surfaceCard(accent: Theme.sunAccent)
+    }
+
+    private func moonCard(events: [PlannerEvent], timeZone: TimeZone) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Label("Moon", systemImage: "moon.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.moonAccent)
+                .padding(.bottom, Theme.spacingSM)
+
+            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                if index > 0 { Divider().opacity(0.1) }
+                eventRow(event, timeZone: timeZone)
+            }
+            if !events.contains(where: { $0.kind == .moonrise || $0.kind == .moonset }) {
+                Text("No moonrise or moonset this day.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.mutedForeground)
+                    .padding(.vertical, 8)
+            }
+            terrainSection(.moon, timeZone: timeZone)
+        }
+        .surfaceCard(accent: Theme.moonAccent)
     }
 
     private func eventRow(_ event: PlannerEvent, timeZone: TimeZone) -> some View {
         let direction = "\(Int(event.azimuth.rounded()))° \(Formatting.compassDirection(event.azimuth))"
         let detail: String
-        if event.kind == .sunNow || event.kind == .sunBelow || event.kind == .moonNow {
+        if event.isNow {
             detail = String(format: "Altitude %.1f°", event.altitude ?? 0)
         } else if event.isSolstice, let time = event.time {
             detail = "\(Formatting.formatDateShort(time, timeZone: timeZone)), \(Formatting.formatTime(time, format: settingsStore.timeFormat, timeZone: timeZone))"
@@ -229,7 +319,7 @@ struct MapPlannerPage: View {
             detail = Formatting.formatTime(event.time, format: settingsStore.timeFormat, timeZone: timeZone)
         }
         return HStack(spacing: Theme.spacingMD) {
-            LegendSwatch(color: PlannerColors.color(for: event.kind), dashed: event.isSolstice || event.kind == .sunBelow)
+            LegendSwatch(color: PlannerColors.color(for: event.kind), dashed: event.isDashed)
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.label)
                     .font(.caption)
@@ -247,12 +337,14 @@ struct MapPlannerPage: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func terrainCard(timeZone: TimeZone) -> some View {
+    /// Real-horizon rows for one body, under its directions.
+    private func terrainSection(_ part: TerrainLightRows.Part, timeZone: TimeZone) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Label("Real Horizon", systemImage: "mountain.2.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.sunAccent)
-                .padding(.bottom, Theme.spacingSM)
+            Label("Over the real horizon", systemImage: "mountain.2.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.mutedForeground)
+                .padding(.top, Theme.spacingMD)
+                .padding(.bottom, 4)
 
             if dragCoordinate != nil {
                 Text("Release the pin to read the terrain.")
@@ -267,6 +359,7 @@ struct MapPlannerPage: View {
                             .font(.caption)
                             .foregroundStyle(Theme.mutedForeground)
                     }
+                    .padding(.vertical, 4)
                 case .failed:
                     Text("Elevation data is unavailable right now.")
                         .font(.caption)
@@ -275,16 +368,12 @@ struct MapPlannerPage: View {
                     TerrainLightRows(
                         summary: TerrainLightSummary(profile: profile, day: selectedDate, timeZone: timeZone),
                         timeZone: timeZone,
-                        timeFormat: settingsStore.timeFormat
+                        timeFormat: settingsStore.timeFormat,
+                        parts: [part]
                     )
                 }
             }
-            Text("Terrain only: trees and buildings aren't in the elevation data.")
-                .font(.caption2)
-                .foregroundStyle(Theme.mutedForeground)
-                .padding(.top, Theme.spacingSM)
         }
-        .surfaceCard(accent: Theme.sunAccent)
     }
 }
 

@@ -3,21 +3,22 @@ import { AttributionControl, Map as MapLibre, Marker, setWorkerUrl } from 'mapli
 import type { ExpressionSpecification, GeoJSONSource } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { Layers, Map as MapIcon } from 'lucide-react'
+import { Layers, Map as MapIcon, Moon, Mountain, Sun } from 'lucide-react'
 import { SectionHeader } from '@/components/shared/SectionHeader'
 import { DateNavigator } from '@/components/shared/DateNavigator'
 import { PlaceSearch } from '@/components/shared/PlaceSearch'
-import { TerrainCard } from '@/features/terrain/TerrainCard'
+import { TerrainRows } from '@/features/terrain/TerrainCard'
 import { useSelectedDate } from '@/hooks/useSelectedDate'
 import { useLocationStore } from '@/stores/location-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { getSunTimes } from '@/lib/astronomy/sun-calculator'
 import { getMoonData } from '@/lib/astronomy/moon-calculator'
 import { findDateForSolarLongitude } from '@/lib/astronomy/solar-longitude'
-import { bodyPosition } from '@/lib/terrain/horizon'
+import { bodyPosition, useHorizon } from '@/lib/terrain/horizon'
 import { TERRAIN_TILES } from '@/lib/terrain/terrain'
 import { bearingLine, compass, metersPerPixel } from '@/lib/geo/bearing'
-import { formatTime } from '@/lib/formatting'
+import { formatDateShort, formatTime } from '@/lib/formatting'
+import { getPolarLabel } from '@/lib/astronomy/sun-calculator'
 import { cn } from '@/lib/utils'
 import { TZDate } from '@date-fns/tz'
 
@@ -45,21 +46,39 @@ type RayKind =
 interface Ray {
   kind: RayKind
   azimuth: number
+  time: Date
+  /** Apparent altitude, for the "now" rays. */
+  altitude?: number
 }
+
+type Bodies = 'both' | 'sun' | 'moon'
+const BODY_OPTIONS: Array<{ value: Bodies; label: string }> = [
+  { value: 'both', label: 'Sun & Moon' },
+  { value: 'sun', label: 'Sun' },
+  { value: 'moon', label: 'Moon' },
+]
+const MOON_KINDS: RayKind[] = ['moonrise', 'moonset', 'moon', 'moon-below']
+const isMoonRay = (ray: Ray) => MOON_KINDS.includes(ray.kind)
+const isNowRay = (ray: Ray) => ray.altitude !== undefined
+const isSolsticeRay = (ray: Ray) => ray.kind.startsWith('summer') || ray.kind.startsWith('winter')
+
+/** Two taps within this many ms and pixels count as a double tap (touch or mouse). */
+const DOUBLE_TAP_MS = 400
+const DOUBLE_TAP_PX = 30
 
 const RAY_STYLE: Record<RayKind, { color: string; label: string; dashed?: boolean }> = {
   sunrise: { color: '#f0a202', label: 'Sunrise' },
   sunset: { color: '#e2522b', label: 'Sunset' },
   sun: { color: '#ffd23f', label: 'Sun now' },
   'sun-below': { color: '#8b93b8', label: 'Sun now (below horizon)', dashed: true },
-  moonrise: { color: '#c7d2fe', label: 'Moonrise' },
-  moonset: { color: '#8ea3c7', label: 'Moonset' },
+  moonrise: { color: '#7dd3fc', label: 'Moonrise' },
+  moonset: { color: '#a78bfa', label: 'Moonset' },
   moon: { color: '#f1f5f9', label: 'Moon now' },
-  'moon-below': { color: '#64748b', label: 'Moon now (below horizon)', dashed: true },
-  'summer-rise': { color: '#e0892b', label: 'June solstice', dashed: true },
-  'summer-set': { color: '#e0892b', label: 'June solstice', dashed: true },
-  'winter-rise': { color: '#5b8fd0', label: 'December solstice', dashed: true },
-  'winter-set': { color: '#5b8fd0', label: 'December solstice', dashed: true },
+  'moon-below': { color: '#94a3b8', label: 'Moon now (below horizon)', dashed: true },
+  'summer-rise': { color: '#e0892b', label: 'June solstice sunrise', dashed: true },
+  'summer-set': { color: '#e0892b', label: 'June solstice sunset', dashed: true },
+  'winter-rise': { color: '#5b8fd0', label: 'December solstice sunrise', dashed: true },
+  'winter-set': { color: '#5b8fd0', label: 'December solstice sunset', dashed: true },
 }
 
 const kindExpr: ExpressionSpecification = ['get', 'kind']
@@ -155,6 +174,8 @@ export function MapPage() {
   const [ready, setReady] = useState(false)
   const [satellite, setSatellite] = useState(false)
   const [zoomTick, setZoomTick] = useState(0)
+  const [bodies, setBodies] = useState<Bodies>('both')
+  const { horizon, loading: horizonLoading } = useHorizon(latitude, longitude)
 
   const moveSpot = (lat: number, lng: number, placeName?: string | null, placeZone?: string | null) => {
     setGpsEnabled(false)
@@ -193,7 +214,19 @@ export function MapPage() {
     })
     pinRef.current = pin
 
-    map.on('dblclick', (event) => moveSpotRef.current(event.lngLat.lat, event.lngLat.lng))
+    // Double tap / double click sets the spot. MapLibre's own dblclick event is mouse-only, so
+    // pair up clicks instead (mobile browsers send a click for each tap).
+    let lastClick: { time: number; x: number; y: number } | null = null
+    map.on('click', (event) => {
+      const now = performance.now()
+      const { x, y } = event.point
+      if (lastClick && now - lastClick.time < DOUBLE_TAP_MS && Math.hypot(x - lastClick.x, y - lastClick.y) < DOUBLE_TAP_PX) {
+        lastClick = null
+        moveSpotRef.current(event.lngLat.lat, event.lngLat.lng)
+      } else {
+        lastClick = { time: now, x, y }
+      }
+    })
     map.on('zoomend', () => setZoomTick((tick) => tick + 1))
     map.on('load', () => {
       addLayers(map)
@@ -239,26 +272,35 @@ export function MapPage() {
 
   const rays = useMemo<Ray[]>(() => {
     const out: Ray[] = []
-    const az = (body: 'sun' | 'moon', at: Date) => bodyPosition(body, at, latitude, longitude).azimuth
-    if (sunTimes.sunrise) out.push({ kind: 'sunrise', azimuth: az('sun', sunTimes.sunrise) })
-    if (sunTimes.sunset) out.push({ kind: 'sunset', azimuth: az('sun', sunTimes.sunset) })
-    if (moonData.moonrise) out.push({ kind: 'moonrise', azimuth: az('moon', moonData.moonrise) })
-    if (moonData.moonset) out.push({ kind: 'moonset', azimuth: az('moon', moonData.moonset) })
+    const ray = (kind: RayKind, body: 'sun' | 'moon', time: Date): Ray => ({
+      kind,
+      time,
+      azimuth: bodyPosition(body, time, latitude, longitude).azimuth,
+    })
+    if (sunTimes.sunrise) out.push(ray('sunrise', 'sun', sunTimes.sunrise))
+    if (sunTimes.sunset) out.push(ray('sunset', 'sun', sunTimes.sunset))
     if (isToday) {
       const sun = bodyPosition('sun', selectedDate, latitude, longitude)
-      out.push({ kind: sun.altitude > -0.833 ? 'sun' : 'sun-below', azimuth: sun.azimuth })
-      const moon = bodyPosition('moon', selectedDate, latitude, longitude)
-      out.push({ kind: moon.altitude > 0 ? 'moon' : 'moon-below', azimuth: moon.azimuth })
+      out.push({ kind: sun.altitude > -0.833 ? 'sun' : 'sun-below', time: selectedDate, ...sun })
     }
     const year = new TZDate(selectedDayStart.getTime(), timeZone).getFullYear()
     for (const [season, longitudeDeg] of [['summer', 90], ['winter', 270]] as const) {
       const day = findDateForSolarLongitude(longitudeDeg, year)
       const times = getSunTimes(day, latitude, longitude, timeZone)
-      if (times.sunrise) out.push({ kind: `${season}-rise`, azimuth: az('sun', times.sunrise) })
-      if (times.sunset) out.push({ kind: `${season}-set`, azimuth: az('sun', times.sunset) })
+      if (times.sunrise) out.push(ray(`${season}-rise`, 'sun', times.sunrise))
+      if (times.sunset) out.push(ray(`${season}-set`, 'sun', times.sunset))
+    }
+    if (moonData.moonrise) out.push(ray('moonrise', 'moon', moonData.moonrise))
+    if (moonData.moonset) out.push(ray('moonset', 'moon', moonData.moonset))
+    if (isToday) {
+      const moon = bodyPosition('moon', selectedDate, latitude, longitude)
+      out.push({ kind: moon.altitude > 0 ? 'moon' : 'moon-below', time: selectedDate, ...moon })
     }
     return out
   }, [sunTimes, moonData, isToday, selectedDate, selectedDayStart, latitude, longitude, timeZone])
+
+  const sunRays = rays.filter((ray) => !isMoonRay(ray))
+  const moonRays = rays.filter(isMoonRay)
 
   // Draw the rays; their length follows the zoom level.
   useEffect(() => {
@@ -266,22 +308,61 @@ export function MapPage() {
     if (!map || !ready) return
     const length = rayLength(map, latitude)
     const source = map.getSource('rays') as GeoJSONSource | undefined
+    const visible = rays.filter((ray) => bodies === 'both' || (bodies === 'moon') === isMoonRay(ray))
     source?.setData({
       type: 'FeatureCollection',
-      features: rays.map((ray) => ({
+      features: visible.map((ray) => ({
         type: 'Feature',
         properties: { kind: ray.kind },
         geometry: { type: 'LineString', coordinates: bearingLine(latitude, longitude, ray.azimuth, length) },
       })),
     })
-  }, [rays, ready, latitude, longitude, zoomTick])
+  }, [rays, bodies, ready, latitude, longitude, zoomTick])
 
-  const events: Array<{ kind: RayKind; time: Date | null; azimuth: number | null }> = [
-    { kind: 'sunrise', time: sunTimes.sunrise, azimuth: rays.find((r) => r.kind === 'sunrise')?.azimuth ?? null },
-    { kind: 'sunset', time: sunTimes.sunset, azimuth: rays.find((r) => r.kind === 'sunset')?.azimuth ?? null },
-    { kind: 'moonrise', time: moonData.moonrise, azimuth: rays.find((r) => r.kind === 'moonrise')?.azimuth ?? null },
-    { kind: 'moonset', time: moonData.moonset, azimuth: rays.find((r) => r.kind === 'moonset')?.azimuth ?? null },
-  ]
+  const detail = (ray: Ray) => {
+    if (isNowRay(ray)) return `Altitude ${ray.altitude!.toFixed(1)}°`
+    if (isSolsticeRay(ray)) return `${formatDateShort(ray.time, timeZone)}, ${formatTime(ray.time, timeFormat, timeZone)}`
+    return formatTime(ray.time, timeFormat, timeZone)
+  }
+
+  const rayRows = (list: Ray[]) =>
+    list.map((ray) => (
+      <div key={ray.kind} className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className={cn('w-5', RAY_STYLE[ray.kind].dashed ? 'h-0 border-t-2 border-dashed' : 'h-1 rounded-full')}
+            style={RAY_STYLE[ray.kind].dashed ? { borderColor: RAY_STYLE[ray.kind].color } : { backgroundColor: RAY_STYLE[ray.kind].color }}
+          />
+          <div>
+            <p className="text-xs text-foreground">{RAY_STYLE[ray.kind].label}</p>
+            <p className="text-xs tabular-nums text-muted-foreground">{detail(ray)}</p>
+          </div>
+        </div>
+        <p className="text-right text-sm font-medium tabular-nums text-foreground/90">
+          {Math.round(ray.azimuth)}° {compass(ray.azimuth)}
+        </p>
+      </div>
+    ))
+
+  const terrainSection = (body: 'sun' | 'moon') => (
+    <div className="mt-2 border-t border-white/[0.06] pt-3">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+        <Mountain className="h-3.5 w-3.5" aria-hidden="true" />
+        Over the real horizon
+      </p>
+      <TerrainRows
+        horizon={horizon}
+        loading={horizonLoading}
+        dayStart={selectedDayStart}
+        sunTimes={sunTimes}
+        timeZone={timeZone}
+        bodies={[body]}
+      />
+    </div>
+  )
+
+  const polarLabel = getPolarLabel(sunTimes.polar)
 
   return (
     <div className="space-y-5">
@@ -327,59 +408,65 @@ export function MapPage() {
             Satellite
           </button>
         </div>
+        <div role="group" aria-label="Show directions for" className="grid grid-cols-3 gap-1 rounded-xl bg-white/[0.04] p-1">
+          {BODY_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setBodies(option.value)}
+              aria-pressed={bodies === option.value}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                bodies === option.value ? 'bg-white/[0.12] text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <p className="text-xs text-muted-foreground">
           Double-tap the map or drag the pin to plan from another spot.
         </p>
       </div>
 
-      <div className="animate-in-3 surface space-y-0">
-        {events.map(({ kind, time, azimuth }) => (
-          <div key={kind} className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <span
-                aria-hidden="true"
-                className="h-1 w-5 rounded-full"
-                style={{ backgroundColor: RAY_STYLE[kind].color }}
-              />
-              <p className="text-xs text-muted-foreground">{RAY_STYLE[kind].label}</p>
+      {bodies !== 'moon' && (
+        <section className="animate-in-3 space-y-3" aria-label="Sun directions">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sun/8">
+              <Sun className="h-3.5 w-3.5 text-sun" aria-hidden="true" />
             </div>
-            <p className="text-right text-sm font-medium tabular-nums text-foreground/90">
-              {formatTime(time, timeFormat, timeZone)}
-              {azimuth !== null && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  {Math.round(azimuth)}° {compass(azimuth)}
-                </span>
-              )}
-            </p>
+            <span className="text-sm font-semibold tracking-tight">Sun</span>
           </div>
-        ))}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden="true" className="h-0 w-5 border-t-2 border-dashed" style={{ borderColor: RAY_STYLE['summer-rise'].color }} />
-            June solstice
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden="true" className="h-0 w-5 border-t-2 border-dashed" style={{ borderColor: RAY_STYLE['winter-rise'].color }} />
-            December solstice
-          </span>
-          {isToday && (
-            <span className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="h-1 w-5 rounded-full" style={{ backgroundColor: RAY_STYLE.sun.color }} />
-              Sun / moon now
-            </span>
-          )}
-        </div>
-      </div>
+          <div className="surface space-y-0">
+            {rayRows(sunRays)}
+            {polarLabel && <p className="py-2 text-xs text-muted-foreground">{polarLabel}</p>}
+            {terrainSection('sun')}
+          </div>
+        </section>
+      )}
 
-      <div className="animate-in-4">
-        <TerrainCard
-          latitude={latitude}
-          longitude={longitude}
-          dayStart={selectedDayStart}
-          sunTimes={sunTimes}
-          timeZone={timeZone}
-        />
-      </div>
+      {bodies !== 'sun' && (
+        <section className="animate-in-4 space-y-3" aria-label="Moon directions">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-moon/8">
+              <Moon className="h-3.5 w-3.5 text-moon" aria-hidden="true" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">Moon</span>
+          </div>
+          <div className="surface space-y-0">
+            {rayRows(moonRays)}
+            {!moonData.moonrise && !moonData.moonset && (
+              <p className="py-2 text-xs text-muted-foreground">No moonrise or moonset this day.</p>
+            )}
+            {terrainSection('moon')}
+          </div>
+        </section>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        {horizon ? `Ground ${Math.round(horizon.elevation)} m · ` : ''}terrain from open elevation data; trees and
+        buildings are not included.
+      </p>
     </div>
   )
 }

@@ -3,16 +3,22 @@ import { Mountain } from 'lucide-react'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { formatDuration, formatTime } from '@/lib/formatting'
 import { terrainLight, useHorizon } from '@/lib/terrain/horizon'
+import type { HorizonResult } from '@/lib/terrain/terrain'
 import { useSettingsStore } from '@/stores/settings-store'
 import type { SunTimes } from '@/types'
 
-interface TerrainCardProps {
-  latitude: number
-  longitude: number
+export type TerrainBody = 'sun' | 'moon'
+
+interface TerrainRowsProps {
+  /** From `useHorizon` (call it once per page; each call runs the terrain worker). */
+  horizon: HorizonResult | null
+  loading: boolean
   /** Local midnight of the selected day. */
   dayStart: Date
   sunTimes: SunTimes
   timeZone: string
+  /** Which bodies' rows to show. */
+  bodies?: TerrainBody[]
 }
 
 function minutesBetween(a: Date, b: Date): number {
@@ -24,10 +30,9 @@ function relative(minutes: number, after: string, before: string): string {
   return minutes > 0 ? `${minutes} min ${after}` : `${-minutes} min ${before}`
 }
 
-/** Real first/last light over the terrain skyline for the Sun and Moon. */
-export function TerrainCard({ latitude, longitude, dayStart, sunTimes, timeZone }: TerrainCardProps) {
+/** Real first/last light over the terrain skyline for the Sun and/or Moon. */
+export function TerrainRows({ horizon, loading, dayStart, sunTimes, timeZone, bodies = ['sun', 'moon'] }: TerrainRowsProps) {
   const { timeFormat } = useSettingsStore()
-  const { horizon, loading } = useHorizon(latitude, longitude)
 
   const light = useMemo(() => {
     if (!horizon) return null
@@ -39,6 +44,61 @@ export function TerrainCard({ latitude, longitude, dayStart, sunTimes, timeZone 
 
   const time = (date: Date | null) => formatTime(date, timeFormat, timeZone)
 
+  if (loading || !light || !horizon) {
+    return (
+      <p className="py-2 text-sm text-muted-foreground" role="status">
+        Reading terrain around this spot…
+      </p>
+    )
+  }
+
+  return (
+    <>
+      {bodies.includes('sun') && (
+        <>
+          <InfoRow
+            label="First direct sun"
+            sublabel={
+              light.sun.firstLight && sunTimes.sunrise
+                ? relative(minutesBetween(light.sun.firstLight, sunTimes.sunrise), 'after sunrise', 'before sunrise')
+                : undefined
+            }
+            value={time(light.sun.firstLight)}
+          />
+          <InfoRow
+            label="Last direct sun"
+            sublabel={
+              light.sun.lastLight && sunTimes.sunset
+                ? relative(minutesBetween(sunTimes.sunset, light.sun.lastLight), 'before sunset', 'after sunset')
+                : undefined
+            }
+            value={time(light.sun.lastLight)}
+          />
+          <InfoRow label="Direct sun" value={light.sun.minutes > 0 ? formatDuration(light.sun.minutes) : 'None'} />
+        </>
+      )}
+      {bodies.includes('moon') && (
+        <>
+          <InfoRow label="Moon clears terrain" value={time(light.moon.firstLight)} />
+          <InfoRow label="Moon drops behind terrain" value={time(light.moon.lastLight)} />
+        </>
+      )}
+    </>
+  )
+}
+
+interface TerrainCardProps {
+  latitude: number
+  longitude: number
+  /** Local midnight of the selected day. */
+  dayStart: Date
+  sunTimes: SunTimes
+  timeZone: string
+}
+
+/** "Real Horizon" card for the Sun page: when direct sunlight actually reaches the spot. */
+export function TerrainCard({ latitude, longitude, ...rest }: TerrainCardProps) {
+  const { horizon, loading } = useHorizon(latitude, longitude)
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2.5">
@@ -48,39 +108,11 @@ export function TerrainCard({ latitude, longitude, dayStart, sunTimes, timeZone 
         <span className="text-sm font-semibold tracking-tight">Real Horizon</span>
       </div>
       <div className="surface space-y-0">
-        {loading || !light || !horizon ? (
-          <p className="py-3 text-sm text-muted-foreground" role="status">
-            Reading terrain around this spot…
-          </p>
-        ) : (
-          <>
-            <InfoRow
-              label="First direct sun"
-              sublabel={
-                light.sun.firstLight && sunTimes.sunrise
-                  ? relative(minutesBetween(light.sun.firstLight, sunTimes.sunrise), 'after sunrise', 'before sunrise')
-                  : undefined
-              }
-              value={time(light.sun.firstLight)}
-            />
-            <InfoRow
-              label="Last direct sun"
-              sublabel={
-                light.sun.lastLight && sunTimes.sunset
-                  ? relative(minutesBetween(sunTimes.sunset, light.sun.lastLight), 'before sunset', 'after sunset')
-                  : undefined
-              }
-              value={time(light.sun.lastLight)}
-            />
-            <InfoRow label="Direct sun" value={light.sun.minutes > 0 ? formatDuration(light.sun.minutes) : 'None'} />
-            <InfoRow label="Moon clears terrain" value={time(light.moon.firstLight)} />
-            <InfoRow label="Moon drops behind terrain" value={time(light.moon.lastLight)} />
-            <p className="pt-2 text-xs text-muted-foreground">
-              Ground {Math.round(horizon.elevation)} m · hills and coast from open elevation data; trees and
-              buildings are not included.
-            </p>
-          </>
-        )}
+        <TerrainRows horizon={horizon} loading={loading} {...rest} bodies={['sun']} />
+        <p className="pt-2 text-xs text-muted-foreground">
+          {horizon ? `Ground ${Math.round(horizon.elevation)} m · ` : ''}hills and coast from open elevation data;
+          trees and buildings are not included.
+        </p>
       </div>
     </div>
   )

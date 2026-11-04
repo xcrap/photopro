@@ -5,7 +5,7 @@ import SunCalc
 /// One azimuth event for the map planner: a ray from the pin plus its panel row.
 struct PlannerEvent: Identifiable, Sendable {
     enum Kind: String, Sendable {
-        case sunrise, sunset, moonrise, moonset, sunNow, sunBelow, moonNow
+        case sunrise, sunset, moonrise, moonset, sunNow, sunBelow, moonNow, moonBelow
         case juneRise, juneSet, decemberRise, decemberSet
     }
 
@@ -18,6 +18,10 @@ struct PlannerEvent: Identifiable, Sendable {
 
     var id: String { kind.rawValue }
     var isSolstice: Bool { [.juneRise, .juneSet, .decemberRise, .decemberSet].contains(kind) }
+    var isMoon: Bool { [.moonrise, .moonset, .moonNow, .moonBelow].contains(kind) }
+    /// Drawn dashed: solstice extremes and a body that is below the horizon now.
+    var isDashed: Bool { isSolstice || kind == .sunBelow || kind == .moonBelow }
+    var isNow: Bool { [.sunNow, .sunBelow, .moonNow, .moonBelow].contains(kind) }
 }
 
 /// Azimuth events for the map planner (ported from Waka Sun's overlay):
@@ -70,7 +74,11 @@ enum PlannerRays {
                 time: now, azimuth: sunNow.azimuth, altitude: sunNow.altitude
             ))
             let moonNow = moonPosition(at: now, lat: lat, lon: lon)
-            events.append(PlannerEvent(kind: .moonNow, label: "Moon now", time: now, azimuth: moonNow.azimuth, altitude: moonNow.altitude))
+            events.append(PlannerEvent(
+                kind: moonNow.altitude > 0 ? .moonNow : .moonBelow,
+                label: moonNow.altitude > 0 ? "Moon now" : "Moon now (below horizon)",
+                time: now, azimuth: moonNow.azimuth, altitude: moonNow.altitude
+            ))
         }
 
         let year = AstroDateHelper.calendar(for: timeZone).component(.year, from: day)

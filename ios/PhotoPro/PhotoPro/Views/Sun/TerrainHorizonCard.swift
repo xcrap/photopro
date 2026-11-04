@@ -6,9 +6,10 @@ enum PlannerColors {
     static let sunset = Color(red: 0.89, green: 0.32, blue: 0.17)    // #e2522b
     static let sunNow = Color(red: 1.0, green: 0.82, blue: 0.25)     // #ffd23f
     static let sunBelow = Color(red: 0.45, green: 0.55, blue: 0.78)
-    static let moonrise = Color(red: 0.78, green: 0.84, blue: 0.96)
-    static let moonset = Color(red: 0.56, green: 0.64, blue: 0.82)
-    static let moonNow = Color(red: 0.93, green: 0.95, blue: 1.0)
+    static let moonrise = Color(red: 0.49, green: 0.83, blue: 0.99)  // #7dd3fc
+    static let moonset = Color(red: 0.65, green: 0.55, blue: 0.98)   // #a78bfa
+    static let moonNow = Color(red: 0.95, green: 0.96, blue: 0.98)   // #f1f5f9
+    static let moonBelow = Color(red: 0.58, green: 0.64, blue: 0.72) // #94a3b8
     static let june = Color(red: 0.88, green: 0.54, blue: 0.17)      // #e0892b
     static let december = Color(red: 0.45, green: 0.62, blue: 0.85)  // #4f7fb3, lightened for dark map
 
@@ -21,6 +22,7 @@ enum PlannerColors {
         case .moonrise: return moonrise
         case .moonset: return moonset
         case .moonNow: return moonNow
+        case .moonBelow: return moonBelow
         case .juneRise, .juneSet: return june
         case .decemberRise, .decemberSet: return december
         }
@@ -64,9 +66,12 @@ struct TerrainLightSummary {
 
 /// Rows for the terrain first/last light, shared by the Sun tab card and the map planner.
 struct TerrainLightRows: View {
+    enum Part { case sun, moon }
+
     let summary: TerrainLightSummary
     let timeZone: TimeZone
     let timeFormat: TimeFormat
+    var parts: Set<Part> = [.sun, .moon]
 
     private func time(_ date: Date?) -> String {
         Formatting.formatTime(date, format: timeFormat, timeZone: timeZone)
@@ -80,22 +85,28 @@ struct TerrainLightRows: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if summary.sun.first == nil && summary.sun.last == nil {
-                InfoRow(icon: "mountain.2", label: "Direct sunlight", value: "—",
-                        sublabel: "The Sun doesn't clear the terrain this day")
-            } else {
-                InfoRow(icon: "sunrise", label: "First light", value: time(summary.sun.first),
-                        sublabel: delayText(summary.riseDelayMinutes, suffix: "sunrise", after: true)
-                            .map { [$0, skylineText(summary.riseSkyline)].compactMap { $0 }.joined(separator: " · ") })
-                Divider().opacity(0.1)
-                InfoRow(icon: "sunset", label: "Last light", value: time(summary.sun.last),
-                        sublabel: delayText(summary.setLeadMinutes, suffix: "sunset", after: false)
-                            .map { [$0, skylineText(summary.setSkyline)].compactMap { $0 }.joined(separator: " · ") })
+            if parts.contains(.sun) {
+                if summary.sun.first == nil && summary.sun.last == nil {
+                    InfoRow(icon: "mountain.2", label: "Direct sunlight", value: "—",
+                            sublabel: "The Sun doesn't clear the terrain this day")
+                } else {
+                    InfoRow(icon: "sunrise", label: "First direct sun", value: time(summary.sun.first),
+                            sublabel: delayText(summary.riseDelayMinutes, suffix: "sunrise", after: true)
+                                .map { [$0, skylineText(summary.riseSkyline)].compactMap { $0 }.joined(separator: " · ") })
+                    Divider().opacity(0.1)
+                    InfoRow(icon: "sunset", label: "Last direct sun", value: time(summary.sun.last),
+                            sublabel: delayText(summary.setLeadMinutes, suffix: "sunset", after: false)
+                                .map { [$0, skylineText(summary.setSkyline)].compactMap { $0 }.joined(separator: " · ") })
+                }
             }
-            Divider().opacity(0.1)
-            InfoRow(icon: "moonrise", label: "Moon clears the terrain", value: time(summary.moon.first))
-            Divider().opacity(0.1)
-            InfoRow(icon: "moonset", label: "Moon drops behind the terrain", value: time(summary.moon.last))
+            if parts == [.sun, .moon] {
+                Divider().opacity(0.1)
+            }
+            if parts.contains(.moon) {
+                InfoRow(icon: "moonrise", label: "Moon clears the terrain", value: time(summary.moon.first))
+                Divider().opacity(0.1)
+                InfoRow(icon: "moonset", label: "Moon drops behind the terrain", value: time(summary.moon.last))
+            }
         }
     }
 
@@ -141,7 +152,8 @@ struct TerrainHorizonCard: View {
                 TerrainLightRows(
                     summary: TerrainLightSummary(profile: profile, day: date, timeZone: timeZone),
                     timeZone: timeZone,
-                    timeFormat: settingsStore.timeFormat
+                    timeFormat: settingsStore.timeFormat,
+                    parts: [.sun]
                 )
                 Text("Ground \(Int(profile.elevation.rounded())) m. Terrain only: trees and buildings aren't in the elevation data.")
                     .font(.caption2)
