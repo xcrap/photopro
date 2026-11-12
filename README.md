@@ -52,6 +52,22 @@ bun run dev
 1. Open `ios/PhotoPro/PhotoPro.xcodeproj` in Xcode
 2. Build and run on simulator or device (iOS 26+)
 
+### TestFlight updates
+
+Run `./ios/scripts/testflight.sh` from the repository root on this Mac. It archives
+the iOS app and uploads an internal TestFlight build using the local Apple
+Distribution certificate. Xcode manages the uploaded build number. No connected
+iPhone or open Xcode window is needed; the Mac still needs Xcode, its signed-in
+Apple account, and the distribution certificate in the keychain.
+
+After Apple finishes processing, the Personal Testing group receives the build.
+On iPhone, open PhotoPro in TestFlight and enable Automatic Updates. Each build
+expires after 90 days, so upload a fresh build before then.
+
+Release artifacts are saved in the ignored `ios/build/TestFlight/` directory.
+Cloud signing is not used because this team's accented name triggered invalid
+signatures in Xcode Cloud; see [Apple's signing discussion](https://developer.apple.com/forums/thread/843700).
+
 ## License
 
 MIT
